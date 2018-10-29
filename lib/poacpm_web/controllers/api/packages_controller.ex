@@ -9,29 +9,11 @@ defmodule PoacpmWeb.Api.PackagesController do
   ]
 
 
-  # Check if package already exists
-  defp _exists(name, version) do
-    Firestore.get_docs_list("packages")
-    |> Enum.find_value(false, fn x ->
-         (name == x.fields["name"].stringValue) and
-         (version == x.fields["version"].stringValue)
-       end)
-  end
-
   defp get_token_name(x) do
     # "projects/{}/databases/{}/documents/tokens/ABCDEFG"
     x.name
     |> String.split("/")
     |> List.last() # ABCDEFG
-  end
-
-  # Exists token and it owned by owners
-  defp _validate(token, owners) do
-    Firestore.get_docs_list("tokens")
-    |> Enum.find_value(false, fn x ->
-         (get_token_name(x) == token) and
-         Enum.member?(owners, x.fields["owner"].stringValue)
-       end)
   end
 
   # boost/config -> boost-config
@@ -97,8 +79,27 @@ defmodule PoacpmWeb.Api.PackagesController do
       owners = setting["owners"]
       name = setting["name"]
       version = setting["version"]
+
+
+      exists_api = "https://poac.pm/api/packages/" <> name <> "/" <> version <> "/exists"
+      exists = case HTTPoison.get!(exists_api) do
+        %{status_code: 200, body: body} ->
+          body
+          |> Poison.decode!()
+        end
+
+
+      validate_api = "https://poac.pm/api/tokens/validate"
+      body = %{"token" => token, "owners" => owners} |> Poison.encode!()
+      headers = [{"Content-type", "application/json"}]
+      validate = case HTTPoison.post!(validate_api, body, headers, []) do
+        %{status_code: 200, body: body} ->
+          if body == "ok", do: true, else: false
+      end
+
+
       # TODO: もし，存在していても，ownerが一致していれば，上書きができる(next version)
-      if _validate(token, owners) and !_exists(name, version) do
+      if validate and !exists do
         # Upload to google cloud storage
         GCS.upload_file(file.filename, file.path) # TODO: このfile.filenameを使用してしてしまうと，hackされる恐れが高まる
 
