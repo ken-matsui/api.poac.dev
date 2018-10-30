@@ -44,7 +44,7 @@ defmodule Poacpm.Mixfile do
       {:poison, "~> 3.0"},
       {:yaml_elixir, "~> 2.1"},
       {:google_api_storage, "~> 0.1.0"},
-      {:goth, "~> 0.10.0"},
+      {:goth, "~> 0.11.0"},
       {:google_api_firestore, "~> 0.1.0"}
     ]
   end
