@@ -42,12 +42,12 @@ defmodule PoacpmWeb.Api.PackagesController do
   end
 
   @doc """
-  IF >200MB, invalid
+  IF >100MB, invalid
   Note: There is a possibility of difference depending on OS and file system.
   Ret: ture -> valid, false -> invalid
   """
   def check_file_size(size) do
-    size < 200000000
+    size < 100000000
   end
 
 
