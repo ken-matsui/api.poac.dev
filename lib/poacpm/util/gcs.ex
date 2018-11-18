@@ -1,7 +1,7 @@
 defmodule Poacpm.Util.GCS do
   alias GoogleApi.Storage.V1.Api.Objects, as: Api
 
-  @bucket_name "re.poac.pm"
+  @bucket_name "poac-pm.appspot.com"
 
   defp create_connection() do
     {:ok, token} = Goth.Token.for_scope("https://www.googleapis.com/auth/cloud-platform")

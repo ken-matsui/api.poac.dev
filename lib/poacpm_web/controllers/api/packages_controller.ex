@@ -22,7 +22,7 @@ defmodule PoacpmWeb.Api.PackagesController do
     |> String.replace("/", "-")
   end
 
-  @api_url "https://www.googleapis.com/storage/v1/b/re.poac.pm/o/"
+  @api_url "https://www.googleapis.com/storage/v1/b/poac-pm.appspot.com/o/"
   def getMd5Hash(filename) do
     HTTPoison.start()
     res = HTTPoison.get!(@api_url <> filename)
