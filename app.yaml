@@ -1,3 +1,6 @@
-env: flex
-runtime: gs://elixir-runtime/elixir.yaml
-entrypoint: mix phx.server
+runtime: go
+api_version: go1
+
+handlers:
+- url: /.*
+  script: _go_app
