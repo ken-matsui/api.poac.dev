@@ -7,10 +7,11 @@ import (
 	"errors"
 	"firebase.google.com/go"
 	"fmt"
+	"github.com/ghodss/yaml"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
-	"gopkg.in/yaml.v2"
+	"google.golang.org/appengine/urlfetch"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -18,7 +19,7 @@ import (
 	"strconv"
 )
 
-type T struct {
+type Config struct {
 	name    string
 	version string
 	owners  []string
@@ -43,13 +44,13 @@ func createDoc(ctx context.Context, config string) error {
 	}
 	defer client.Close()
 
-	m := make(map[interface{}]interface{})
-	err = yaml.Unmarshal([]byte(config), &m)
+	mapString := make(map[string]interface{})
+	err = yaml.Unmarshal([]byte(config), &mapString)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = client.Collection("packages").Add(ctx, m)
+	_, _, err = client.Collection("packages").Add(ctx, mapString)
 	if err != nil {
 		log.Debugf(ctx, "Failed adding collection: %v", err)
 		return err
@@ -69,7 +70,6 @@ func createObject(ctx context.Context, file multipart.File, fileHeader *multipar
 
 	// GCS writer
 	writer := client.Bucket(bucketName).Object(objName).NewWriter(ctx)
-	writer.ContentType = "application/x-tar"
 
 	// Create file buffer
 	buf := bytes.NewBuffer(nil)
@@ -90,9 +90,9 @@ func createObject(ctx context.Context, file multipart.File, fileHeader *multipar
 	return nil
 }
 
-func checkToken(token string, owners []string) error {
+func checkToken(ctx context.Context, token string, owners []string) error {
 	validateUrl := "https://poac.pm/api/tokens/validate"
-	contentType := "Content-type:application/json"
+	contentType := "Content-type: application/json"
 	body := ValidateBody{
 		Token:  token,
 		Owners: owners,
@@ -102,7 +102,8 @@ func checkToken(token string, owners []string) error {
 		return err
 	}
 
-	resp, err := http.Post(validateUrl, contentType, bytes.NewBuffer(jsonBody))
+	client := urlfetch.Client(ctx)
+	resp, err := client.Post(validateUrl, contentType, bytes.NewBuffer(jsonBody))
 	if err == nil {
 		return err
 	}
@@ -116,9 +117,10 @@ func checkToken(token string, owners []string) error {
 	}
 }
 
-func checkExists(name string, version string) error {
+func checkExists(ctx context.Context, name string, version string) error {
 	existsUrl := "https://poac.pm/api/packages/" + name + "/" + version + "/exists"
-	resp, err := http.Get(existsUrl)
+	client := urlfetch.Client(ctx)
+	resp, err := client.Get(existsUrl)
 	if err != nil {
 		return err
 	}
@@ -162,15 +164,17 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config := r.FormValue("config")
-	t := T{}
-	err = yaml.Unmarshal([]byte(config), &t)
+	configString := r.FormValue("config")
+	config := Config{}
+	err = yaml.Unmarshal([]byte(configString), &config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = checkExists(t.name, t.version)
+	ctx := appengine.NewContext(r)
+
+	err = checkExists(ctx, config.name, config.version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -178,19 +182,18 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: If exist it and match owner, can update it. (next version)
 	token := r.FormValue("token")
-	err = checkToken(token, t.owners)
+	err = checkToken(ctx, token, config.owners)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	ctx := appengine.NewContext(r)
 	err = createObject(ctx, file, fileHeader)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = createDoc(ctx, config)
+	err = createDoc(ctx, configString)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
