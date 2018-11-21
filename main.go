@@ -19,18 +19,12 @@ import (
 	"strconv"
 )
 
-type Config struct {
-	name    string
-	version string
-	owners  []string
-}
-
 type ValidateBody struct {
 	Token  string   `json:"token"`
 	Owners []string `json:"owners"`
 }
 
-func createDoc(ctx context.Context, config string) error {
+func createDoc(ctx context.Context, config map[string]interface{}) error {
 	projectID := "poac-pm"
 	conf := &firebase.Config{ProjectID: projectID}
 	app, err := firebase.NewApp(ctx, conf)
@@ -44,13 +38,7 @@ func createDoc(ctx context.Context, config string) error {
 	}
 	defer client.Close()
 
-	mapString := make(map[string]interface{})
-	err = yaml.Unmarshal([]byte(config), &mapString)
-	if err != nil {
-		return err
-	}
-
-	_, _, err = client.Collection("packages").Add(ctx, mapString)
+	_, _, err = client.Collection("packages").Add(ctx, config)
 	if err != nil {
 		log.Debugf(ctx, "Failed adding collection: %v", err)
 		return err
@@ -90,9 +78,10 @@ func createObject(ctx context.Context, file multipart.File, fileHeader *multipar
 	return nil
 }
 
+// TODO: If exist it and match owner, can update it. (next version)
 func checkToken(ctx context.Context, token string, owners []string) error {
 	validateUrl := "https://poac.pm/api/tokens/validate"
-	contentType := "Content-type: application/json"
+	contentType := "application/json"
 	body := ValidateBody{
 		Token:  token,
 		Owners: owners,
@@ -101,6 +90,8 @@ func checkToken(ctx context.Context, token string, owners []string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Debugf(ctx, "jsonBody %v", string(jsonBody))
 
 	client := urlfetch.Client(ctx)
 	resp, err := client.Post(validateUrl, contentType, bytes.NewBuffer(jsonBody))
@@ -165,7 +156,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	configString := r.FormValue("config")
-	config := Config{}
+	config := make(map[string]interface{})
 	err = yaml.Unmarshal([]byte(configString), &config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -174,15 +165,20 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 	ctx := appengine.NewContext(r)
 
-	err = checkExists(ctx, config.name, config.version)
+	err = checkExists(ctx, config["name"].(string), config["version"].(string))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// TODO: If exist it and match owner, can update it. (next version)
 	token := r.FormValue("token")
-	err = checkToken(ctx, token, config.owners)
+	ownersInterface := config["owners"].([]interface{})
+	owners := make([]string, len(ownersInterface))
+	for i, v := range ownersInterface {
+		owners[i] = v.(string)
+	}
+
+	err = checkToken(ctx, token, owners)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -193,7 +189,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = createDoc(ctx, configString)
+	err = createDoc(ctx, config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
