@@ -16,7 +16,6 @@ import (
 	"google.golang.org/appengine/urlfetch"
 	"io"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -49,10 +48,7 @@ func createDoc(ctx context.Context, config map[string]interface{}) error {
 	return nil
 }
 
-func createObject(ctx context.Context, fileBuf *bytes.Buffer, fileHeader *multipart.FileHeader) error {
-	bucketName := "poac-pm.appspot.com"
-	objName := fileHeader.Filename
-
+func createObject(ctx context.Context, fileBuf *bytes.Buffer, objName string) error {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		log.Debugf(ctx, "failed to create gcs client : %v", err)
@@ -60,6 +56,7 @@ func createObject(ctx context.Context, fileBuf *bytes.Buffer, fileHeader *multip
 	}
 
 	// GCS writer
+	bucketName := "poac-pm.appspot.com"
 	writer := client.Bucket(bucketName).Object(objName).NewWriter(ctx)
 
 	// upload : write object body
@@ -102,10 +99,10 @@ func checkToken(ctx context.Context, token string, owners []string) error {
 		return nil
 	} else {
 		return errors.New("Token verification failed.\n" +
-						  "Please check the following check lists.\n" +
-			              "1. Does token really belong to you?\n" +
-			              "2. Is the user ID described `owners` in poac.yml\n" +
-			              "    the same as that of GitHub account?")
+			"Please check the following check lists.\n" +
+			"1. Does token really belong to you?\n" +
+			"2. Is the user ID described `owners` in poac.yml\n" +
+			"    the same as that of GitHub account?")
 	}
 }
 
@@ -147,13 +144,13 @@ func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
 			break
 		}
 		// name-version/poac.yml
-		if strings.Contains(tarHeader.Name, "poac.yml") {
+		if strings.Count(tarHeader.Name, "/") == 1 && strings.Contains(tarHeader.Name, "poac.yml") {
 			buf, err := ioutil.ReadAll(tarReader)
 			if err != nil {
 				return map[string][]byte{}, err
 			}
 			buffers["poac.yml"] = buf
-		} else if strings.Contains(tarHeader.Name, "README.md") {
+		} else if strings.Count(tarHeader.Name, "/") == 1 && strings.Contains(tarHeader.Name, "README.md") {
 			buf, err := ioutil.ReadAll(tarReader)
 			if err != nil {
 				return map[string][]byte{}, err
@@ -199,19 +196,18 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	fileBuf := bytes.NewBuffer(nil)
 	teeFile := io.TeeReader(file, fileBuf)
 
-	buffers, err := unTarGzip(teeFile)
-	if _, ok := buffers["poac.yml"]; !ok {
+	fileBytes, err := unTarGzip(teeFile)
+	if _, ok := fileBytes["poac.yml"]; !ok {
 		http.Error(w, "poac.yml does not exist", http.StatusInternalServerError)
 		return
 	}
 
 	config := make(map[string]interface{})
-	err = yaml.Unmarshal(buffers["poac.yml"], &config)
+	err = yaml.Unmarshal(fileBytes["poac.yml"], &config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	} // TODO: あとは，README.mdをfirestoreとかにpush
-
+	}
 
 	configName := config["name"].(string)
 	if string(configName[0]) == "/" {
@@ -224,7 +220,16 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = checkExists(ctx, configName, config["version"].(string))
+	configVersion := config["version"].(string)
+	packageName := strings.Replace(configName, "/", "-", -1) + "-" + configVersion
+	if packageName+".tar.gz" != fileHeader.Filename {
+		errStr := fileHeader.Filename + " is an invalid name.\nIt must be replace(name, \"/\", \"-\") + \"-\" + version."
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	// TODO: name-version.tar.gz -extract> [name-version/poac.yml, ...] if name-version is other it, error
+
+	err = checkExists(ctx, configName, configVersion)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -248,10 +253,21 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = createObject(ctx, fileBuf, fileHeader)
+	err = createObject(ctx, fileBuf, fileHeader.Filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// TODO: If firebase cannot recursive delete in folder problem(https://stackoverflow.com/a/38215897) is solved,
+	//  upload other than README.md.
+	if readmeBytes, ok := fileBytes["README.md"]; ok {
+		readmeBuf := bytes.NewBuffer(readmeBytes)
+		err = createObject(ctx, readmeBuf, packageName+"/README.md")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	fmt.Fprintln(w, "ok")
