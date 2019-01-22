@@ -1,8 +1,10 @@
 package main
 
 import (
+	"archive/tar"
 	"bytes"
 	"cloud.google.com/go/storage"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"firebase.google.com/go"
@@ -17,6 +19,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type ValidateBody struct {
@@ -46,7 +49,7 @@ func createDoc(ctx context.Context, config map[string]interface{}) error {
 	return nil
 }
 
-func createObject(ctx context.Context, file multipart.File, fileHeader *multipart.FileHeader) error {
+func createObject(ctx context.Context, fileBuf *bytes.Buffer, fileHeader *multipart.FileHeader) error {
 	bucketName := "poac-pm.appspot.com"
 	objName := fileHeader.Filename
 
@@ -59,14 +62,8 @@ func createObject(ctx context.Context, file multipart.File, fileHeader *multipar
 	// GCS writer
 	writer := client.Bucket(bucketName).Object(objName).NewWriter(ctx)
 
-	// Create file buffer
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, file); err != nil {
-		return err
-	}
-
 	// upload : write object body
-	if _, err := writer.Write(buf.Bytes()); err != nil {
+	if _, err := writer.Write(fileBuf.Bytes()); err != nil {
 		log.Debugf(ctx, "failed to write object body : %v", err)
 		return err
 	}
@@ -104,7 +101,11 @@ func checkToken(ctx context.Context, token string, owners []string) error {
 	if string(byteArray) == "ok" {
 		return nil
 	} else {
-		return errors.New("token validation error")
+		return errors.New("Token verification failed.\n" +
+						  "Please check the following check lists.\n" +
+			              "1. Does token really belong to you?\n" +
+			              "2. Is the user ID described `owners` in poac.yml\n" +
+			              "    the same as that of GitHub account?")
 	}
 }
 
@@ -130,11 +131,50 @@ func checkExists(ctx context.Context, name string, version string) error {
 	}
 }
 
+func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
+	gzipReader, err := gzip.NewReader(fileBuf)
+	if err != nil {
+		return map[string][]byte{}, err
+	}
+	defer gzipReader.Close()
+
+	tarReader := tar.NewReader(gzipReader)
+
+	buffers := make(map[string][]byte)
+	for {
+		tarHeader, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		// name-version/poac.yml
+		if strings.Contains(tarHeader.Name, "poac.yml") {
+			buf, err := ioutil.ReadAll(tarReader)
+			if err != nil {
+				return map[string][]byte{}, err
+			}
+			buffers["poac.yml"] = buf
+		} else if strings.Contains(tarHeader.Name, "README.md") {
+			buf, err := ioutil.ReadAll(tarReader)
+			if err != nil {
+				return map[string][]byte{}, err
+			}
+			buffers["README.md"] = buf
+		}
+	}
+	return buffers, nil
+}
+
 func handle(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+
+	log.Infof(ctx, "Function started")
+
 	if r.Method != "POST" {
 		http.Error(w, "Allowed POST method only", http.StatusMethodNotAllowed)
 		return
 	}
+
+	log.Infof(ctx, "Checked method")
 
 	// max memory
 	err := r.ParseMultipartForm(32 << 20)
@@ -155,17 +195,36 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	configString := r.FormValue("config")
-	config := make(map[string]interface{})
-	err = yaml.Unmarshal([]byte(configString), &config)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Create file buffer and reader
+	fileBuf := bytes.NewBuffer(nil)
+	teeFile := io.TeeReader(file, fileBuf)
+
+	buffers, err := unTarGzip(teeFile)
+	if _, ok := buffers["poac.yml"]; !ok {
+		http.Error(w, "poac.yml does not exist", http.StatusInternalServerError)
 		return
 	}
 
-	ctx := appengine.NewContext(r)
+	config := make(map[string]interface{})
+	err = yaml.Unmarshal(buffers["poac.yml"], &config)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} // TODO: あとは，README.mdをfirestoreとかにpush
 
-	err = checkExists(ctx, config["name"].(string), config["version"].(string))
+
+	configName := config["name"].(string)
+	if string(configName[0]) == "/" {
+		errStr := "Invalid name.\nIt is prohibited to add / (slash)\n at the begenning of the project name."
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	} else if strings.Count(configName, "/") > 1 {
+		errStr := "Invalid name.\nIt is prohibited to use two\n /(slashes) in the project name."
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+
+	err = checkExists(ctx, configName, config["version"].(string))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -184,12 +243,12 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = createObject(ctx, file, fileHeader)
+	err = createDoc(ctx, config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = createDoc(ctx, config)
+	err = createObject(ctx, fileBuf, fileHeader)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
