@@ -17,6 +17,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -216,6 +217,10 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if strings.Count(configName, "/") > 1 {
 		errStr := "Invalid name.\nIt is prohibited to use two\n /(slashes) in the project name."
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	} else if !regexp.MustCompile("^([a-z|\\d|\\-|_|\\/]*)$").Match([]byte(configName)) {
+		errStr := "Invalid name.\nIt is prohibited to use a character string that does not match ^([a-z|\\d|\\-|_|\\/]*)$ in the project name."
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
