@@ -211,8 +211,16 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	configName := config["name"].(string)
-	if string(configName[0]) == "/" {
-		errStr := "Invalid name.\nIt is prohibited to add / (slash)\n at the begenning of the project name."
+	if regexp.MustCompile("^(\\/|\\-|_|\\d)+$").Match([]byte(configName)) {
+		errStr := "Invalid name.\nIt is prohibited to add / and -, _, number only string of the project name."
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(configName[0]))) {
+		errStr := "Invalid name.\nIt is prohibited to add / and -, _ \n at the begenning of the project name."
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(configName[len(configName)]))) {
+		errStr := "Invalid name.\nIt is prohibited to add / and -, _ \n at the last of the project name."
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	} else if strings.Count(configName, "/") > 1 {
