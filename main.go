@@ -215,8 +215,8 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		errStr := "Invalid name.\nIt is prohibited to use / and -, _, number only string of the project name."
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
-	} else if regexp.MustCompile("^(\\/|\\-|_|\\d)$").Match([]byte(string(configName[0]))) {
-		errStr := "Invalid name.\nIt is prohibited to use / and -, _, number \n at the begenning of the project name."
+	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(configName[0]))) {
+		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the begenning of the project name."
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(configName[len(configName)]))) {
