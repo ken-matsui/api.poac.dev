@@ -9,6 +9,7 @@ import (
 	"errors"
 	"firebase.google.com/go"
 	"fmt"
+	"github.com/blang/semver"
 	"github.com/ghodss/yaml"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
@@ -18,6 +19,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -211,6 +213,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	configName := config["name"].(string)
+	configDesc := config["description"].(string)
 	if regexp.MustCompile("^(\\/|\\-|_|\\d)+$").Match([]byte(configName)) {
 		errStr := "Invalid name.\nIt is prohibited to use / and -, _, number only string of the project name."
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -235,9 +238,32 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		errStr := "Invalid name.\nIt is prohibited to use a character string that does not match ^([a-z|\\d|\\-|_|\\/]*)$ in the project name."
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
+	} else if configDesc == "**TODO: Add description**" {
+		errStr := "Invalid description.\nIt is prohibited to use the same as the output of `poac new`."
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
 	}
 
+	configCppVersion := config["cpp_version"].(string)
+	files := []string{"98", "03", "11", "14", "17", "20"}
+	sort.Strings(files)
+	i := sort.Search(len(files),
+		func(i int) bool { return files[i] >= configCppVersion })
+	if !(i < len(files) && files[i] == configCppVersion) {
+		errStr := "Invalid cpp_version.\nPlease select one of 98, 03, 11, 14, 17, 20." // TODO: 詳細ドキュメントを用意する
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+
+	// semver error
 	configVersion := config["version"].(string)
+	_, err = semver.Make(configVersion)
+	if err != nil {
+		errStr := "Invalid version.\nPlease adapt to semver.\nSee https://semver.org for details."
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	// package name error
 	packageName := strings.Replace(configName, "/", "-", -1) + "-" + configVersion
 	if packageName+".tar.gz" != fileHeader.Filename {
 		errStr := fileHeader.Filename + " is an invalid name.\nIt must be replace(name, \"/\", \"-\") + \"-\" + version."
