@@ -77,7 +77,7 @@ func createObject(ctx context.Context, fileBuf *bytes.Buffer, objName string) er
 
 // TODO: If exist it and match owner, can update it. (next version)
 func checkToken(ctx context.Context, token string, owners []string) error {
-	validateUrl := "https://poac.pm/api/tokens/validate"
+	validateUrl := "https://poac.io/api/tokens/validate"
 	contentType := "application/json"
 	body := ValidateBody{
 		Token:  token,
@@ -110,7 +110,7 @@ func checkToken(ctx context.Context, token string, owners []string) error {
 }
 
 func checkExists(ctx context.Context, name string, version string) error {
-	existsUrl := "https://poac.pm/api/packages/" + name + "/" + version + "/exists"
+	existsUrl := "https://poac.io/api/packages/" + name + "/" + version + "/exists"
 	client := urlfetch.Client(ctx)
 	resp, err := client.Get(existsUrl)
 	if err != nil {
@@ -222,7 +222,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the begenning of the project name."
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
-	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(configName[len(configName)]))) {
+	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(configName[len(configName)-1]))) {
 		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the last of the project name."
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
@@ -244,9 +244,9 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	configCppVersion := config["cpp_version"].(string)
-	files := []string{"98", "03", "11", "14", "17", "20"}
-	sort.Strings(files)
+	configCppVersion := config["cpp_version"].(float64)
+	files := []float64{98, 3, 11, 14, 17, 20}
+	sort.Float64s(files)
 	i := sort.Search(len(files),
 		func(i int) bool { return files[i] >= configCppVersion })
 	if !(i < len(files) && files[i] == configCppVersion) {
