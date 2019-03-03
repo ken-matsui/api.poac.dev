@@ -37,3 +37,8 @@ Temporary Items
 /.idea
 *.iml
 
+
+#
+# go mod
+#
+api.poac.pm
