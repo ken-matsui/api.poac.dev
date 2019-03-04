@@ -1,4 +1,4 @@
-package upload
+package packages
 
 import (
 	"archive/tar"
@@ -164,7 +164,7 @@ func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
 	return buffers, nil
 }
 
-func Do() echo.HandlerFunc {
+func Upload() echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		file, err := c.FormFile("file")
 		if err != nil {
@@ -285,6 +285,6 @@ func Do() echo.HandlerFunc {
 			}
 		}
 
-		return c.String(http.StatusOK, "ok")
+		return c.String(http.StatusOK, "ok") // TODO: ok文字列は必要ない
 	}
 }
