@@ -4,3 +4,9 @@ handlers:
 - url: /.*
   script: auto
   secure: always
+- url: /statuspage
+  script: auto
+  login: admin
+
+includes:
+  - secret.yaml
