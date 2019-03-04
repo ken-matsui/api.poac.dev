@@ -2,6 +2,7 @@ package route
 
 import (
 	"github.com/labstack/echo"
+	"github.com/poacpm/api.poac.pm/api"
 	"github.com/poacpm/api.poac.pm/api/packages"
 	"github.com/poacpm/api.poac.pm/api/tokens"
 	"github.com/poacpm/api.poac.pm/middleware"
@@ -23,5 +24,6 @@ func Init() *echo.Echo {
 		packagesRoute.POST("/upload", packages.Upload())
 	}
 	e.POST("/tokens/validate", tokens.Validate())
+	e.GET("/statuspage", api.Statuspage())
 	return e
 }
