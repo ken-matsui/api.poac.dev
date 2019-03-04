@@ -33,6 +33,7 @@ require (
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.6 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
+	github.com/newrelic/go-agent v2.5.0+incompatible // indirect
 	github.com/openzipkin/zipkin-go v0.1.5 // indirect
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
 	github.com/prometheus/common v0.2.0 // indirect
