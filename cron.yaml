@@ -1,4 +1,4 @@
 cron:
 - description: "statuspage"
   url: /statuspage
-  schedule: every 5 mins
+  schedule: every 1 mins
