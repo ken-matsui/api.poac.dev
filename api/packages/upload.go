@@ -10,7 +10,7 @@ import (
 	"firebase.google.com/go"
 	"github.com/blang/semver"
 	"github.com/ghodss/yaml"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"

@@ -2,7 +2,7 @@ package tokens
 
 import (
 	"errors"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/misc"
 	"google.golang.org/api/iterator"
 	"google.golang.org/appengine/log"

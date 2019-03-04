@@ -1,11 +1,13 @@
 package route
 
 import (
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/api"
 	"github.com/poacpm/api.poac.pm/api/packages"
 	"github.com/poacpm/api.poac.pm/api/tokens"
+	_ "github.com/poacpm/api.poac.pm/docs"
 	"github.com/poacpm/api.poac.pm/middleware"
+	"github.com/swaggo/echo-swagger/v2"
 )
 
 func Init() *echo.Echo {
@@ -25,5 +27,6 @@ func Init() *echo.Echo {
 	}
 	e.POST("/tokens/validate", tokens.Validate())
 	e.GET("/statuspage", api.Statuspage())
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	return e
 }

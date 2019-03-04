@@ -1,7 +1,7 @@
 package packages
 
 import (
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/misc"
 	"google.golang.org/appengine/log"
 	"net/http"
