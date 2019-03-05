@@ -5,22 +5,20 @@ import (
 	"bytes"
 	"cloud.google.com/go/storage"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
-	"firebase.google.com/go"
 	"github.com/blang/semver"
 	"github.com/ghodss/yaml"
 	"github.com/labstack/echo/v4"
+	"github.com/poacpm/api.poac.pm/api/tokens"
+	"github.com/poacpm/api.poac.pm/misc"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/urlfetch"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -29,10 +27,9 @@ type ValidateBody struct {
 	Owners []string `json:"owners"`
 }
 
-func createDoc(ctx context.Context, config map[string]interface{}) error {
-	projectID := "poac-pm"
-	conf := &firebase.Config{ProjectID: projectID}
-	app, err := firebase.NewApp(ctx, conf)
+// TODO: ここのAPI呼び出しを修正する！ -> poac.pm/apiじゃなくて，内部の関数を呼び出す
+func createDoc(r *http.Request, config map[string]interface{}) error {
+	ctx, app, err := misc.NewFirebaseApp(r)
 	if err != nil {
 		return err
 	}
@@ -76,29 +73,13 @@ func createObject(ctx context.Context, fileBuf *bytes.Buffer, objName string) er
 }
 
 // TODO: If exist it and match owner, can update it. (next version)
-func checkToken(ctx context.Context, token string, owners []string) error {
-	validateUrl := "https://poac.io/api/tokens/validate"
-	contentType := "application/json"
-	body := ValidateBody{
-		Token:  token,
-		Owners: owners,
-	}
-	jsonBody, err := json.Marshal(body)
+func checkToken(r *http.Request, token string, owners []string) error {
+	res, err := tokens.ValidateImpl(r, token, owners)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf(ctx, "jsonBody %v", string(jsonBody))
-
-	client := urlfetch.Client(ctx)
-	resp, err := client.Post(validateUrl, contentType, bytes.NewBuffer(jsonBody))
-	if err == nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	byteArray, _ := ioutil.ReadAll(resp.Body)
-	if string(byteArray) == "ok" {
+	if res == "ok" {
 		return nil
 	} else {
 		return errors.New("Token verification failed.\n" +
@@ -109,17 +90,8 @@ func checkToken(ctx context.Context, token string, owners []string) error {
 	}
 }
 
-func checkExists(ctx context.Context, name string, version string) error {
-	existsUrl := "https://poac.io/api/packages/" + name + "/" + version + "/exists"
-	client := urlfetch.Client(ctx)
-	resp, err := client.Get(existsUrl)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	byteArray, _ := ioutil.ReadAll(resp.Body)
-	isExists, err := strconv.ParseBool(string(byteArray))
+func checkExists(c echo.Context, name string, version string) error {
+	isExists, err := handleExists(c, name, version)
 	if err == nil {
 		return err
 	}
@@ -129,6 +101,79 @@ func checkExists(ctx context.Context, name string, version string) error {
 	} else {
 		return nil
 	}
+}
+
+func getOwners(yamlOwners interface{}) []string {
+	ownersInterface := yamlOwners.([]interface{})
+	owners := make([]string, len(ownersInterface))
+	for i, v := range ownersInterface {
+		owners[i] = v.(string)
+	}
+	return owners
+}
+
+func checkConfigName(name string) error {
+	if regexp.MustCompile("^(\\/|\\-|_|\\d)+$").Match([]byte(name)) {
+		errStr := "Invalid name.\nIt is prohibited to use / and -, _, number only string of the project name."
+		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(name[0]))) {
+		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the begenning of the project name."
+		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(name[len(name)-1]))) {
+		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the last of the project name."
+		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	} else if regexp.MustCompile("^.*(\\/|\\-|_){2,}.*$").Match([]byte(name)) {
+		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n twice of the project name."
+		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	} else if strings.Count(name, "/") > 1 {
+		errStr := "Invalid name.\nIt is prohibited to use two\n /(slashes) in the project name."
+		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	} else if !regexp.MustCompile("^([a-z|\\d|\\-|_|\\/]*)$").Match([]byte(name)) {
+		errStr := "Invalid name.\nIt is prohibited to use a character string that does not match ^([a-z|\\d|\\-|_|\\/]*)$ in the project name."
+		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	} else {
+		return nil
+	}
+}
+
+func checkConfigFile(yamlByte []byte) (map[string]interface{}, string, string, error) {
+	config := make(map[string]interface{})
+	err := yaml.Unmarshal(yamlByte, &config)
+	if err != nil {
+		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	configName := config["name"].(string)
+	err = checkConfigName(configName)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	configDesc := config["description"].(string)
+	if configDesc == "**TODO: Add description**" {
+		errStr := "Invalid description.\nIt is prohibited to use the same as the output of `poac new`."
+		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	}
+
+	configCppVersion := config["cpp_version"].(float64)
+	files := []float64{98, 3, 11, 14, 17, 20}
+	sort.Float64s(files)
+	i := sort.Search(len(files),
+		func(i int) bool { return files[i] >= configCppVersion })
+	if !(i < len(files) && files[i] == configCppVersion) {
+		errStr := "Invalid cpp_version.\nPlease select one of 98, 03, 11, 14, 17, 20." // TODO: 詳細ドキュメントを用意する
+		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	}
+
+	// semver error
+	configVersion := config["version"].(string)
+	_, err = semver.Make(configVersion)
+	if err != nil {
+		errStr := "Invalid version.\nPlease adapt to semver.\nSee https://semver.org for details."
+		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, errStr)
+	}
+
+	return config, configName, configVersion, nil
 }
 
 func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
@@ -165,7 +210,7 @@ func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
 }
 
 func Upload() echo.HandlerFunc {
-	return func(c echo.Context) (err error) {
+	return func(c echo.Context) error {
 		file, err := c.FormFile("file")
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -190,54 +235,11 @@ func Upload() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, "poac.yml does not exist")
 		}
 
-		config := make(map[string]interface{})
-		err = yaml.Unmarshal(fileBytes["poac.yml"], &config)
+		config, configName, configVersion, err := checkConfigFile(fileBytes["poac.yml"])
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			return err
 		}
 
-		configName := config["name"].(string)
-		configDesc := config["description"].(string)
-		if regexp.MustCompile("^(\\/|\\-|_|\\d)+$").Match([]byte(configName)) {
-			errStr := "Invalid name.\nIt is prohibited to use / and -, _, number only string of the project name."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(configName[0]))) {
-			errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the begenning of the project name."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(configName[len(configName)-1]))) {
-			errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the last of the project name."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		} else if regexp.MustCompile("^.*(\\/|\\-|_){2,}.*$").Match([]byte(configName)) {
-			errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n twice of the project name."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		} else if strings.Count(configName, "/") > 1 {
-			errStr := "Invalid name.\nIt is prohibited to use two\n /(slashes) in the project name."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		} else if !regexp.MustCompile("^([a-z|\\d|\\-|_|\\/]*)$").Match([]byte(configName)) {
-			errStr := "Invalid name.\nIt is prohibited to use a character string that does not match ^([a-z|\\d|\\-|_|\\/]*)$ in the project name."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		} else if configDesc == "**TODO: Add description**" {
-			errStr := "Invalid description.\nIt is prohibited to use the same as the output of `poac new`."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		}
-
-		configCppVersion := config["cpp_version"].(float64)
-		files := []float64{98, 3, 11, 14, 17, 20}
-		sort.Float64s(files)
-		i := sort.Search(len(files),
-			func(i int) bool { return files[i] >= configCppVersion })
-		if !(i < len(files) && files[i] == configCppVersion) {
-			errStr := "Invalid cpp_version.\nPlease select one of 98, 03, 11, 14, 17, 20." // TODO: 詳細ドキュメントを用意する
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		}
-
-		// semver error
-		configVersion := config["version"].(string)
-		_, err = semver.Make(configVersion)
-		if err != nil {
-			errStr := "Invalid version.\nPlease adapt to semver.\nSee https://semver.org for details."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		}
 		// package name error
 		packageName := strings.Replace(configName, "/", "-", -1) + "-" + configVersion
 		if packageName+".tar.gz" != file.Filename {
@@ -247,28 +249,26 @@ func Upload() echo.HandlerFunc {
 		// TODO: name-version.tar.gz -extract> [name-version/poac.yml, ...] if name-version is other it, error
 
 
-		ctx := appengine.NewContext(c.Request())
-
-		err = checkExists(ctx, configName, configVersion)
+		err = checkExists(c, configName, configVersion)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
 		token := c.FormValue("token")
-		ownersInterface := config["owners"].([]interface{})
-		owners := make([]string, len(ownersInterface))
-		for i, v := range ownersInterface {
-			owners[i] = v.(string)
+		owners := getOwners(config["owners"])
+
+		request := c.Request()
+		err = checkToken(request, token, owners)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
-		err = checkToken(ctx, token, owners)
+		err = createDoc(request, config)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-		err = createDoc(ctx, config)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
+
+		ctx := appengine.NewContext(request)
 		err = createObject(ctx, fileBuf, file.Filename)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

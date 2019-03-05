@@ -26,25 +26,29 @@ func getExists(ctx context.Context, app *firebase.App, name string, version stri
 	return true, nil
 }
 
-func handleExists(c echo.Context, name string, version string) error {
+func handleExists(c echo.Context, name string, version string) (bool, error) {
 	// Create new firebase app
 	ctx, app, err := misc.NewFirebaseApp(c.Request())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	isExists, err := getExists(ctx, app, name, version)
 	if err != nil {
-		return err
+		return false, err
 	}
-	return c.String(http.StatusOK, strconv.FormatBool(isExists))
+	return isExists, nil
 }
 
 func Exists() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		name := c.Param("name")
 		version := c.Param("version")
-		return handleExists(c, name, version)
+		isExists, err := handleExists(c, name, version)
+		if err != nil {
+			return err
+		}
+		return c.String(http.StatusOK, strconv.FormatBool(isExists))
 	}
 }
 
@@ -53,6 +57,10 @@ func ExistsOrg() echo.HandlerFunc {
 		org := c.Param("org")
 		name := c.Param("name")
 		version := c.Param("version")
-		return handleExists(c, org + "/" + name, version)
+		isExists, err := handleExists(c, org + "/" + name, version)
+		if err != nil {
+			return err
+		}
+		return c.String(http.StatusOK, strconv.FormatBool(isExists))
 	}
 }
