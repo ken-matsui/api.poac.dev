@@ -26,7 +26,7 @@ func Init() *echo.Echo {
 		packagesRoute.POST("/upload", packages.Upload())
 	}
 	e.POST("/tokens/validate", tokens.Validate())
-	e.GET("/statuspage", api.Statuspage())
+	e.GET("/flush-memcache", api.FlushMemcache())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	return e
 }
