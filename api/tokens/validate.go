@@ -64,6 +64,24 @@ func getUserDocumentId(r *http.Request, id string) (string, error) {
 	return "", errors.New("")
 }
 
+func ValidateImpl(r *http.Request, token string, owners []string) (string, error) {
+	tokenOwner, err := isExistsToken(r, token)
+	if err != nil {
+		return "", err
+	}
+
+	for _, v := range owners {
+		userDocId, err := getUserDocumentId(r, v)
+		if err != nil {
+			return "", err
+		}
+		if userDocId == tokenOwner {
+			return "ok", nil
+		}
+	}
+	return "err", nil
+}
+
 func Validate() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		param := new(ValidateParam)
@@ -71,20 +89,10 @@ func Validate() echo.HandlerFunc {
 			return err
 		}
 
-		tokenOwner, err := isExistsToken(c.Request(), param.Token)
+		res, err := ValidateImpl(c.Request(), param.Token, param.Owners)
 		if err != nil {
 			return err
 		}
-
-		for _, v := range param.Owners {
-			userDocId, err := getUserDocumentId(c.Request(), v)
-			if err != nil {
-				return err
-			}
-			if userDocId == tokenOwner {
-				return c.String(http.StatusOK, "ok")
-			}
-		}
-		return c.String(http.StatusOK, "err") // TODO: statusのみでやりとりすべき
+		return c.String(http.StatusOK, res) // TODO: statusのみでやりとりすべき
 	}
 }
