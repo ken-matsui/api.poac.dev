@@ -26,6 +26,8 @@ func Statuspage() echo.HandlerFunc {
 
 		// need 1 data point every 5 minutes
 		// submit random data for the whole day
+		ctx := appengine.NewContext(c.Request())
+		client := urlfetch.Client(ctx)
 		totalPoints := (60 / 5 * 24)
 		for i := 0; i < totalPoints; i++ {
 			t := time.Now()
@@ -39,8 +41,6 @@ func Statuspage() echo.HandlerFunc {
 				return c.NoContent(http.StatusInternalServerError)
 			}
 
-			ctx := appengine.NewContext(c.Request())
-			client := urlfetch.Client(ctx)
 			url := "https://" + api_base + "/v1/pages/" + page_id + "/metrics/" + metric_id + "/data.json"
 			req, err := http.NewRequest("POST", url, bytes.NewReader(paramBytes))
 			if err != nil {
