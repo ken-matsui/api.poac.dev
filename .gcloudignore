@@ -12,6 +12,7 @@
 # below:
 .git
 .gitignore
+api.poac.pm
 
 # Binaries for programs and plugins
 *.exe

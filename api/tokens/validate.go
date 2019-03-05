@@ -15,10 +15,16 @@ type ValidateParam struct {
 }
 
 func isExistsToken(r *http.Request, token string) (string, error) {
-	ctx, client, err := misc.NewFirestoreClient(r)
+	ctx, app, err := misc.NewFirebaseApp(r)
 	if err != nil {
 		return "", err
 	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer client.Close()
 
 	dsnap, err := client.Collection("tokens").Doc(token).Get(ctx)
 	if err != nil {
@@ -33,10 +39,16 @@ func isExistsToken(r *http.Request, token string) (string, error) {
 }
 
 func getUserDocumentId(r *http.Request, id string) (string, error) {
-	ctx, client, err := misc.NewFirestoreClient(r)
+	ctx, app, err := misc.NewFirebaseApp(r)
 	if err != nil {
 		return "", err
 	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer client.Close()
 
 	iter := client.Collection("users").Where("id", "==", id).Documents(ctx)
 	for {
@@ -73,6 +85,6 @@ func Validate() echo.HandlerFunc {
 				return c.String(http.StatusOK, "ok")
 			}
 		}
-		return c.String(http.StatusOK, "err") // TODO:
+		return c.String(http.StatusOK, "err") // TODO: statusのみでやりとりすべき
 	}
 }

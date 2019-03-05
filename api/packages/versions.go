@@ -8,10 +8,16 @@ import (
 )
 
 func getVersions(r *http.Request, name string) ([]string, error) {
-	ctx, client, err := misc.NewFirestoreClient(r)
+	ctx, app, err := misc.NewFirebaseApp(r)
 	if err != nil {
 		return nil, err
 	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
 
 	versions := []string{}
 	iter := client.Collection("packages").Where("name", "==", name).Documents(ctx)

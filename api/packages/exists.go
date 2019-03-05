@@ -8,19 +8,23 @@ import (
 )
 
 func getIsExists(r *http.Request, name string, version string) (bool, error) {
-	ctx, client, err := misc.NewFirestoreClient(r)
+	ctx, app, err := misc.NewFirebaseApp(r)
 	if err != nil {
 		return false, err
 	}
 
-	iter := client.Collection("packages").Where("name", "==", name).Where("version", "==", version).Documents(ctx)
-	for {
-		_, err := iter.Next()
-		if err != nil {
-			return false, nil
-		}
-		return true, nil
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		return false, err
 	}
+	defer client.Close()
+
+	iter := client.Collection("packages").Where("name", "==", name).Where("version", "==", version).Documents(ctx)
+	_, err = iter.Next()
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 func Exists() echo.HandlerFunc {

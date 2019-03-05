@@ -10,6 +10,7 @@ require (
 	git.apache.org/thrift.git v0.12.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/Shopify/sarama v1.21.0 // indirect
+	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/coreos/go-systemd v0.0.0-20190212144455-93d5ec2c7f76 // indirect
 	github.com/ghodss/yaml v1.0.0
@@ -29,11 +30,12 @@ require (
 	github.com/kisielk/errcheck v1.2.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/labstack/echo v3.3.10+incompatible
+	github.com/labstack/echo/v4 v4.0.0
 	github.com/mailru/easyjson v0.0.0-20190221075403-6243d8e04c3f // indirect
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.6 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
-	github.com/newrelic/go-agent v2.5.0+incompatible // indirect
+	github.com/newrelic/go-agent v2.5.0+incompatible
 	github.com/openzipkin/zipkin-go v0.1.5 // indirect
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
 	github.com/prometheus/common v0.2.0 // indirect
@@ -55,9 +57,9 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/shurcooL/webdavfs v0.0.0-20181215192745-5988b2d638f6 // indirect
 	github.com/sirupsen/logrus v1.3.0 // indirect
-	github.com/swaggo/echo-swagger/v2 v2.0.0-20190219082602-1a361fc821b8 // indirect
+	github.com/swaggo/echo-swagger/v2 v2.0.0-20190219082602-1a361fc821b8
 	github.com/swaggo/gin-swagger v1.1.0 // indirect
-	github.com/swaggo/swag v1.4.1 // indirect
+	github.com/swaggo/swag v1.4.1
 	github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43 // indirect
 	go.opencensus.io v0.19.0 // indirect
 	go4.org v0.0.0-20190218023631-ce4c26f7be8e // indirect

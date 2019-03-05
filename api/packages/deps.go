@@ -12,13 +12,20 @@ type DepsBody struct {
 }
 
 func getDeps(r *http.Request, name string, version string) ([]DepsBody, error) {
-	ctx, client, err := misc.NewFirestoreClient(r)
+	ctx, app, err := misc.NewFirebaseApp(r)
 	if err != nil {
 		return nil, err
 	}
 
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
 	deps := []DepsBody{}
-	iter := client.Collection("packages").Where("name", "==", name).Where("version", "==", version).Documents(ctx)
+	collection := client.Collection("packages")
+	iter := collection.Where("name", "==", name).Where("version", "==", version).Documents(ctx)
 	for {
 		doc, err := iter.Next()
 		if err != nil {
