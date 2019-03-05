@@ -27,7 +27,6 @@ type ValidateBody struct {
 	Owners []string `json:"owners"`
 }
 
-// TODO: ここのAPI呼び出しを修正する！ -> poac.pm/apiじゃなくて，内部の関数を呼び出す
 func createDoc(r *http.Request, config map[string]interface{}) error {
 	ctx, app, err := misc.NewFirebaseApp(r)
 	if err != nil {
