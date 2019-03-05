@@ -23,7 +23,7 @@ func getDeps(r *http.Request, name string, version string) ([]DepsBody, error) {
 	}
 	defer client.Close()
 
-	deps := []DepsBody{}
+	deps := []DepsBody{} // TODO: 名前がややこしい
 	collection := client.Collection("packages")
 	iter := collection.Where("name", "==", name).Where("version", "==", version).Documents(ctx)
 	for {
@@ -31,8 +31,11 @@ func getDeps(r *http.Request, name string, version string) ([]DepsBody, error) {
 		if err != nil {
 			break
 		}
-		dep := doc.Data()["deps"].(map[string]interface{}) // TODO: これって複数じゃないの？？？
-		deps = append(deps, DepsBody{dep["name"].(string), dep["version"].(string)})
+		dep := doc.Data()["deps"].(map[string]interface{})
+		for name, node := range dep {
+			version := node // TODO: tagとか，versionとかの奥にあるかもしれない
+			deps = append(deps, DepsBody{name, version.(string)})
+		}
 	}
 	return deps, nil
 }
