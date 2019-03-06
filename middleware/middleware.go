@@ -7,7 +7,7 @@ import (
 
 func CacheControlHeader(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		c.Response().Header().Set("Cache-Control", "public, max-age=3600, s-maxage=3600")
+		c.Response().Header().Set("Cache-Control", "public, max-age=60")
 		return next(c)
 	}
 }
