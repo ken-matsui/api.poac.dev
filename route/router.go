@@ -17,20 +17,25 @@ func Init() *echo.Echo {
 	// Routes
 	packagesRoute := e.Group("/packages")
 	{
+		archiveRoute := packagesRoute.Group("/archive")
+		{
+			archiveRoute.GET("/:name/:version", packages.Archive())
+			archiveRoute.GET("/:org/:name/:version", packages.ArchiveDeps())
+		}
 		depsRoute := packagesRoute.Group("/deps")
 		{
 			depsRoute.GET("/:name/:version", packages.Deps())
 			depsRoute.GET("/:org/:name/:version", packages.DepsOrg())
 		}
-		versionsRoute := packagesRoute.Group("/versions")
-		{
-			versionsRoute.GET("/:name", packages.Versions())
-			versionsRoute.GET("/:org/:name", packages.VersionsOrg())
-		}
 		existsRoute := packagesRoute.Group("/exists")
 		{
 			existsRoute.GET("/:name/:version", packages.Exists())
 			existsRoute.GET("/:org/:name/:version", packages.ExistsOrg())
+		}
+		versionsRoute := packagesRoute.Group("/versions")
+		{
+			versionsRoute.GET("/:name", packages.Versions())
+			versionsRoute.GET("/:org/:name", packages.VersionsOrg())
 		}
 		packagesRoute.POST("/upload", packages.Upload())
 	}
