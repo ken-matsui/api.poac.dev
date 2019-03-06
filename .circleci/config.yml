@@ -8,7 +8,9 @@ jobs:
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-      - run: go test ./test/...
+      - run: go vet -v
+      - run: go test -race -coverprofile=coverage.txt -covermode=atomic ./test/...
+      - run: bash <(curl -s https://codecov.io/bash)
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
