@@ -1,7 +1,6 @@
 package packages
 
 import (
-	"encoding/json"
 	"firebase.google.com/go"
 	"fmt"
 	"github.com/labstack/echo/v4"
@@ -10,6 +9,8 @@ import (
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
 	"net/http"
+	"strconv"
+	"unsafe"
 )
 
 func getVersions(ctx context.Context, app *firebase.App, name string) ([]string, error) {
@@ -50,24 +51,30 @@ func handleVersionsCache(c echo.Context, name string) error {
 			return err
 		}
 
-		// Create an Item
-		item := &memcache.Item{
-			Key:   memcacheKey,
-			Value: []byte(fmt.Sprintf("%v", versions)),
+		misc.MemcacheAddIndexSize(ctx, memcacheKey, len(versions))
+		for i, ver := range versions {
+			memcacheKeyIndex := memcacheKey + "/" + strconv.Itoa(i)
+			misc.MemcacheAdd(ctx, memcacheKeyIndex, []byte(ver))
 		}
-		// Add the item to the memcache, if the key does not already exist
-		_ = memcache.Add(ctx, item)
 
 		if len(versions) == 0 {
 			return c.String(http.StatusOK, "null")
 		}
 		return c.JSON(http.StatusOK, versions)
-
 	} else {
+		versionsSizeStr := *(*string)(unsafe.Pointer(&item.Value))
+		versionsSize, _ := strconv.Atoi(versionsSizeStr)
+
 		var versions []string
-		if err := json.Unmarshal(item.Value, &versions); err != nil {
-			panic(err)
+		for i := 0; i < versionsSize; i++ {
+			if item2, err := memcache.Get(ctx, memcacheKey + "/" + strconv.Itoa(i)); err != nil {
+				// TODO: detect error
+			} else {
+				ver := fmt.Sprintf("%s", item2.Value)
+				versions = append(versions, ver)
+			}
 		}
+
 		if len(versions) == 0 {
 			return c.String(http.StatusOK, "null")
 		}
