@@ -9,7 +9,7 @@ import (
 
 func NewFirebaseApp(r *http.Request) (context.Context, *firebase.App, error) {
 	ctx := appengine.NewContext(r)
-	projectID := "poac-pm"
+	projectID := appengine.AppID(ctx)
 	conf := &firebase.Config{ProjectID: projectID}
 	app, err := firebase.NewApp(ctx, conf)
 	if err != nil {

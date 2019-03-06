@@ -12,6 +12,7 @@ import (
 	"github.com/poacpm/api.poac.pm/misc"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
 	"io"
 	"io/ioutil"
@@ -53,7 +54,10 @@ func createObject(ctx context.Context, fileBuf *bytes.Buffer, objName string) er
 	}
 
 	// GCS writer
-	bucketName := "poac-pm.appspot.com"
+	bucketName, err := file.DefaultBucketName(ctx)
+	if err != nil {
+		return err
+	}
 	writer := client.Bucket(bucketName).Object(objName).NewWriter(ctx)
 
 	// upload : write object body
