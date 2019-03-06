@@ -3,12 +3,13 @@ package packages
 import (
 	"encoding/json"
 	"firebase.google.com/go"
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/misc"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/memcache"
 	"net/http"
+	"strconv"
+	"unsafe"
 )
 
 type DepsBody struct {
@@ -58,23 +59,34 @@ func handleDepsCache(c echo.Context, name string, version string) error {
 			return err
 		}
 
-		// Create an Item
-		item := &memcache.Item{
-			Key:   memcacheKey,
-			Value: []byte(fmt.Sprintf("%v", deps)),
+		misc.MemcacheAddIndexSize(ctx, memcacheKey, len(deps))
+		for i, dep := range deps {
+			memcacheKeyIndex := memcacheKey + "/" + strconv.Itoa(i)
+			depValue := []byte(`{"name":"` + dep.Name + `","version":"` + dep.Version + `"}`)
+			misc.MemcacheAdd(ctx, memcacheKeyIndex, depValue)
 		}
-		// Add the item to the memcache, if the key does not already exist
-		_ = memcache.Add(ctx, item)
 
 		if len(deps) == 0 {
 			return c.String(http.StatusOK, "null")
 		}
 		return c.JSON(http.StatusOK, deps)
 	} else {
+		depsSizeStr := *(*string)(unsafe.Pointer(&item.Value))
+		depsSize, _ := strconv.Atoi(depsSizeStr)
+
 		var deps []DepsBody
-		if err := json.Unmarshal(item.Value, &deps); err != nil {
-			panic(err)
+		for i := 0; i < depsSize; i++ {
+			if item2, err := memcache.Get(ctx, memcacheKey + "/" + strconv.Itoa(i)); err != nil {
+				// TODO: detect error
+			} else {
+				var dep DepsBody
+				if err := json.Unmarshal(item2.Value, &dep); err != nil {
+					panic(err) // TODO:
+				}
+				deps = append(deps, dep)
+			}
 		}
+
 		if len(deps) == 0 {
 			return c.String(http.StatusOK, "null")
 		}
