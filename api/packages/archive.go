@@ -1,22 +1,26 @@
 package packages
 
 import (
-	"errors"
-	"github.com/blang/semver"
 	"github.com/labstack/echo/v4"
+	"github.com/poacpm/api.poac.pm/misc"
 	"net/http"
 )
 
 func archiveUrl(name string, version string) (string, error) {
 	url := "https://storage.googleapis.com/poac-pm.appspot.com/"
-	url += name // TODO: upload.goで使用している検証をこちらでも行う
 
-	_, err := semver.Make(version) // semver error
+	err := misc.CheckPackageName(name)
 	if err != nil {
-		errStr := "Invalid version.\nPlease adapt to semver.\nSee https://semver.org for details."
-		return "", errors.New(errStr)
+		return "", err
+	}
+	url += name
+
+	err = misc.CheckPackageVersion(version)
+	if err != nil {
+		return "", err
 	}
 	url += "-" + version
+
 	url += ".tar.gz"
 	return url, nil
 }

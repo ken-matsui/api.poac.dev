@@ -6,7 +6,6 @@ import (
 	"cloud.google.com/go/storage"
 	"compress/gzip"
 	"errors"
-	"github.com/blang/semver"
 	"github.com/ghodss/yaml"
 	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/api/tokens"
@@ -17,7 +16,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"sort"
 	"strings"
 )
@@ -111,30 +109,6 @@ func getOwners(yamlOwners interface{}) []string {
 	return owners
 }
 
-func checkConfigName(name string) error {
-	if regexp.MustCompile("^(\\/|\\-|_|\\d)+$").Match([]byte(name)) {
-		errStr := "Invalid name.\nIt is prohibited to use / and -, _, number only string of the project name."
-		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(name[0]))) {
-		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the begenning of the project name."
-		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(name[len(name)-1]))) {
-		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n at the last of the project name."
-		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-	} else if regexp.MustCompile("^.*(\\/|\\-|_){2,}.*$").Match([]byte(name)) {
-		errStr := "Invalid name.\nIt is prohibited to use / and -, _ \n twice of the project name."
-		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-	} else if strings.Count(name, "/") > 1 {
-		errStr := "Invalid name.\nIt is prohibited to use two\n /(slashes) in the project name."
-		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-	} else if !regexp.MustCompile("^([a-z|\\d|\\-|_|\\/]*)$").Match([]byte(name)) {
-		errStr := "Invalid name.\nIt is prohibited to use a character string that does not match ^([a-z|\\d|\\-|_|\\/]*)$ in the project name."
-		return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-	} else {
-		return nil
-	}
-}
-
 func checkConfigFile(yamlByte []byte) (map[string]interface{}, string, string, error) {
 	config := make(map[string]interface{})
 	err := yaml.Unmarshal(yamlByte, &config)
@@ -143,7 +117,7 @@ func checkConfigFile(yamlByte []byte) (map[string]interface{}, string, string, e
 	}
 
 	configName := config["name"].(string)
-	err = checkConfigName(configName)
+	err = misc.CheckPackageName(configName)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -164,12 +138,10 @@ func checkConfigFile(yamlByte []byte) (map[string]interface{}, string, string, e
 		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, errStr)
 	}
 
-	// semver error
 	configVersion := config["version"].(string)
-	_, err = semver.Make(configVersion)
+	err = misc.CheckPackageVersion(configVersion)
 	if err != nil {
-		errStr := "Invalid version.\nPlease adapt to semver.\nSee https://semver.org for details."
-		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, errStr)
+		return nil, "", "", err
 	}
 
 	return config, configName, configVersion, nil
