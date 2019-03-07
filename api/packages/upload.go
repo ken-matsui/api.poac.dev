@@ -3,19 +3,15 @@ package packages
 import (
 	"archive/tar"
 	"bytes"
-	"cloud.google.com/go/storage"
 	"compress/gzip"
 	"errors"
 	"github.com/ghodss/yaml"
 	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/api/tokens"
 	"github.com/poacpm/api.poac.pm/misc"
-	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/file"
-	"google.golang.org/appengine/log"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"sort"
 	"strings"
@@ -26,51 +22,49 @@ type ValidateBody struct {
 	Owners []string `json:"owners"`
 }
 
-func createDoc(r *http.Request, config map[string]interface{}) error {
-	ctx, app, err := misc.NewFirebaseApp(r)
+type Package struct {
+	Name string
+	Config map[string]interface{}
+	PackageBuf *bytes.Buffer
+	ReadmeBuf map[string][]byte
+}
+
+func createPackage(r *http.Request, packageData *Package) error {
+	err := misc.CreateDoc(r, packageData.Config)
 	if err != nil {
 		return err
 	}
 
-	client, err := app.Firestore(ctx)
+	// TODO: この中で生成されているcontextはできれば使い回すべき
+	err = misc.CreateObject(r, packageData.PackageBuf, packageData.Name+".tar.gz")
 	if err != nil {
 		return err
 	}
-	defer client.Close()
 
-	_, _, err = client.Collection("packages").Add(ctx, config)
-	if err != nil {
-		log.Debugf(ctx, "Failed adding collection: %v", err)
-		return err
+	// TODO: If firebase cannot recursive delete in folder
+	//  problem(https://stackoverflow.com/a/38215897) is solved,
+	//  upload other than README.md.
+	if readmeBytes, ok := packageData.ReadmeBuf["README.md"]; ok {
+		readmeBuf := bytes.NewBuffer(readmeBytes)
+		err = misc.CreateObject(r, readmeBuf, packageData.Name+"/README.md")
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func createObject(ctx context.Context, fileBuf *bytes.Buffer, objName string) error {
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		log.Debugf(ctx, "failed to create gcs client : %v", err)
+func checkExists(c echo.Context, name string, version string) error {
+	isExists, err := handleExists(c, name, version)
+	if err == nil {
 		return err
 	}
 
-	// GCS writer
-	bucketName, err := file.DefaultBucketName(ctx)
-	if err != nil {
-		return err
+	if isExists {
+		return errors.New("Already " + name + ": " + version + "is exists")
+	} else {
+		return nil
 	}
-	writer := client.Bucket(bucketName).Object(objName).NewWriter(ctx)
-
-	// upload : write object body
-	if _, err := writer.Write(fileBuf.Bytes()); err != nil {
-		log.Debugf(ctx, "failed to write object body : %v", err)
-		return err
-	}
-
-	if err := writer.Close(); err != nil {
-		log.Debugf(ctx, "failed to close gcs writer : %v", err)
-		return err
-	}
-	return nil
 }
 
 // TODO: If exist it and match owner, can update it. (next version)
@@ -91,19 +85,6 @@ func checkToken(r *http.Request, token string, owners []string) error {
 	}
 }
 
-func checkExists(c echo.Context, name string, version string) error {
-	isExists, err := handleExists(c, name, version)
-	if err == nil {
-		return err
-	}
-
-	if isExists {
-		return errors.New("Already " + name + ": " + version + "is exists")
-	} else {
-		return nil
-	}
-}
-
 func getOwners(yamlOwners interface{}) []string {
 	ownersInterface := yamlOwners.([]interface{})
 	owners := make([]string, len(ownersInterface))
@@ -113,23 +94,23 @@ func getOwners(yamlOwners interface{}) []string {
 	return owners
 }
 
-func checkConfigFile(yamlByte []byte) (map[string]interface{}, string, string, error) {
+func checkConfigFile(c echo.Context, packageFileName string, yamlByte []byte) (string, map[string]interface{}, error) {
 	config := make(map[string]interface{})
 	err := yaml.Unmarshal(yamlByte, &config)
 	if err != nil {
-		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return "", nil, err
 	}
 
 	configName := config["name"].(string)
 	err = misc.CheckPackageName(configName)
 	if err != nil {
-		return nil, "", "", err
+		return "", nil, err
 	}
 
 	configDesc := config["description"].(string)
 	if configDesc == "**TODO: Add description**" {
 		errStr := "Invalid description.\nIt is prohibited to use the same as the output of `poac new`."
-		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, errStr)
+		return "", nil, errors.New(errStr)
 	}
 
 	configCppVersion := config["cpp_version"].(float64)
@@ -139,16 +120,34 @@ func checkConfigFile(yamlByte []byte) (map[string]interface{}, string, string, e
 		func(i int) bool { return files[i] >= configCppVersion })
 	if !(i < len(files) && files[i] == configCppVersion) {
 		errStr := "Invalid cpp_version.\nPlease select one of 98, 03, 11, 14, 17, 20." // TODO: 詳細ドキュメントを用意する
-		return nil, "", "", echo.NewHTTPError(http.StatusInternalServerError, errStr)
+		return "", nil, errors.New(errStr)
 	}
 
 	configVersion := config["version"].(string)
 	err = misc.CheckPackageVersion(configVersion)
 	if err != nil {
-		return nil, "", "", err
+		return "", nil, err
 	}
 
-	return config, configName, configVersion, nil
+	// package name error
+	packageName := strings.Replace(configName, "/", "-", -1) + "-" + configVersion
+	if packageName+".tar.gz" != packageFileName {
+		errStr := packageFileName + " is an invalid name.\nIt must be replace(name, \"/\", \"-\") + \"-\" + version."
+		return "", nil, errors.New(errStr)
+	}
+	// TODO: name-version.tar.gz -extract> [name-version/poac.yml, ...] if name-version is other it, error
+
+	err = checkExists(c, configName, configVersion)
+	if err != nil {
+		return "", nil, err
+	}
+
+	err = checkToken(c.Request(), c.FormValue("token"), getOwners(config["owners"]))
+	if err != nil {
+		return "", nil, err
+	}
+
+	return packageName, config, nil
 }
 
 func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
@@ -184,80 +183,78 @@ func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
 	return buffers, nil
 }
 
+func extractConfig(packageFile multipart.File) (*bytes.Buffer, map[string][]byte, error) {
+	fileBuf := bytes.NewBuffer(nil)
+	teeFile := io.TeeReader(packageFile, fileBuf)
+	fileBytes, err := unTarGzip(teeFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	return fileBuf, fileBytes, nil
+}
+
+func loadFile(c echo.Context) (string, multipart.File, error) {
+	packageFile, err := c.FormFile("file")
+	if err != nil {
+		return "", nil, err
+	}
+
+	if packageFile.Size > 100000000 {
+		return "", nil, errors.New("Allowed under 100MB package only")
+	}
+
+	src, err := packageFile.Open()
+	return packageFile.Filename, src, err
+}
+
+func loadFileAndConfig(c echo.Context) (string, *bytes.Buffer, map[string][]byte, error) {
+	packageFileName, packageFile, err := loadFile(c)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	defer packageFile.Close()
+
+	fileBuf, fileBytes, err := extractConfig(packageFile)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	return packageFileName, fileBuf, fileBytes, nil
+}
+
 func Upload() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		file, err := c.FormFile("file")
+		packageFileName, fileBuf, fileBytes, err := loadFileAndConfig(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
-
-		if file.Size > 100000000 {
-			return echo.NewHTTPError(http.StatusInternalServerError, "Allowed under 100MB package only")
-		}
-
-		src, err := file.Open()
-		if err != nil {
-			return err
-		}
-		defer src.Close()
-
-		// Create file buffer and reader
-		fileBuf := bytes.NewBuffer(nil)
-		teeFile := io.TeeReader(src, fileBuf)
-
-		fileBytes, err := unTarGzip(teeFile)
 		if _, ok := fileBytes["poac.yml"]; !ok {
 			return echo.NewHTTPError(http.StatusInternalServerError, "poac.yml does not exist")
 		}
 
-		config, configName, configVersion, err := checkConfigFile(fileBytes["poac.yml"])
-		if err != nil {
-			return err
-		}
-
-		// package name error
-		packageName := strings.Replace(configName, "/", "-", -1) + "-" + configVersion
-		if packageName+".tar.gz" != file.Filename {
-			errStr := file.Filename + " is an invalid name.\nIt must be replace(name, \"/\", \"-\") + \"-\" + version."
-			return echo.NewHTTPError(http.StatusInternalServerError, errStr)
-		}
-		// TODO: name-version.tar.gz -extract> [name-version/poac.yml, ...] if name-version is other it, error
-
-
-		err = checkExists(c, configName, configVersion)
+		packageName, config, err := checkConfigFile(c, packageFileName, fileBytes["poac.yml"])
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
-		token := c.FormValue("token")
-		owners := getOwners(config["owners"])
 
-		request := c.Request()
-		err = checkToken(request, token, owners)
+		//filer.FromZIP()
+		//fl, err := filer.FromDirectory("/path/to/project")
+		//// https://github.com/src-d/go-license-detector#algorithm
+		//licenses, err := licensedb.Detect(fl) // TODO: errorなら，LICENSEが存在しない -> no license file was found -> licenseぽかったら読む
+		//for k, v := range licenses {
+		//	fmt.Printf("%v, %v\n", k, v)
+		//} // GPL-3.0という文字列を含んでいれば，それにする
+		// TODO: configの，licenseキーを上書きする必要がある
+
+
+		err = createPackage(c.Request(), &Package{
+			Name: packageName,
+			Config: config,
+			PackageBuf: fileBuf,
+			ReadmeBuf: fileBytes,
+		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-
-		err = createDoc(request, config)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-
-		ctx := appengine.NewContext(request)
-		err = createObject(ctx, fileBuf, file.Filename)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-
-		// TODO: If firebase cannot recursive delete in folder
-		//  problem(https://stackoverflow.com/a/38215897) is solved,
-		//  upload other than README.md.
-		if readmeBytes, ok := fileBytes["README.md"]; ok {
-			readmeBuf := bytes.NewBuffer(readmeBytes)
-			err = createObject(ctx, readmeBuf, packageName+"/README.md")
-			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-			}
 		}
 
 		return c.String(http.StatusOK, "ok") // TODO: ok文字列は必要ない
