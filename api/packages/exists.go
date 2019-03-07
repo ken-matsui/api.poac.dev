@@ -54,10 +54,9 @@ func Exists() echo.HandlerFunc {
 
 func ExistsOrg() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		org := c.Param("org")
-		name := c.Param("name")
+		name := c.Param("org") + "/" + c.Param("name")
 		version := c.Param("version")
-		isExists, err := handleExists(c, org + "/" + name, version)
+		isExists, err := handleExists(c, name, version)
 		if err != nil {
 			return err
 		}

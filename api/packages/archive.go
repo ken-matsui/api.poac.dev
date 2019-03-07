@@ -22,15 +22,15 @@ func archiveUrl(r *http.Request, name string, version string) (string, error) {
 		return "", err
 	}
 
-	// The expiration time is 10 minute.
-	expires := time.Now().Add(10 * time.Minute)
+	// The expiration time is 30 seconds.
+	expires := time.Now().Add(30 * time.Second)
 	signedUrlOptions := storage.SignedURLOptions{
 		GoogleAccessID: googleAccessStorageId,
 		SignBytes: func(b []byte) ([]byte, error) {
 			_, signedBytes, err := appengine.SignBytes(ctx, b)
 			return signedBytes, err
 		},
-		Method:  "GET",
+		Method: "GET",
 		Expires: expires,
 	}
 
@@ -51,22 +51,25 @@ func validateParam(name string, version string) error {
 	return nil
 }
 
+func archiveImpl(c echo.Context, name string, version string) error {
+	err := validateParam(name, version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	url, err := archiveUrl(c.Request(), name, version)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.Redirect(http.StatusPermanentRedirect, url)
+}
+
 func Archive() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		name := c.Param("name")
 		version := c.Param("version")
-
-		err := validateParam(name, version)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-
-		url, err := archiveUrl(c.Request(), name, version)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-
-		return c.Redirect(http.StatusPermanentRedirect, url)
+		return archiveImpl(c, name, version)
 	}
 }
 
@@ -74,17 +77,6 @@ func ArchiveDeps() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		name := c.Param("org") + "-" + c.Param("name")
 		version := c.Param("version")
-
-		err := validateParam(name, version)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-
-		url, err := archiveUrl(c.Request(), name, version)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-
-		return c.Redirect(http.StatusPermanentRedirect, url)
+		return archiveImpl(c, name, version)
 	}
 }

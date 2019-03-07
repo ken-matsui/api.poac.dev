@@ -104,9 +104,8 @@ func Deps() echo.HandlerFunc {
 
 func DepsOrg() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		org := c.Param("org")
-		name := c.Param("name")
+		name := c.Param("org") + "/" + c.Param("name")
 		version := c.Param("version")
-		return handleDepsCache(c, org + "/" + name, version)
+		return handleDepsCache(c, name, version)
 	}
 }

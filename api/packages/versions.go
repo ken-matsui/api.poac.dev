@@ -91,8 +91,7 @@ func Versions() echo.HandlerFunc {
 
 func VersionsOrg() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		org := c.Param("org")
-		name := c.Param("name")
-		return handleVersionsCache(c, org + "/" + name)
+		name := c.Param("org") + "/" + c.Param("name")
+		return handleVersionsCache(c, name)
 	}
 }
