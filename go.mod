@@ -14,7 +14,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/swaggo/echo-swagger/v2 v2.0.0-20190219082602-1a361fc821b8
 	github.com/swaggo/swag v1.4.1
-	golang.org/x/net v0.0.0-20190301231341-16b79f2e4e95
+	golang.org/x/net v0.0.0-20190310074541-c10a0554eabf
 	google.golang.org/api v0.1.0
 	google.golang.org/appengine v1.4.0
 )

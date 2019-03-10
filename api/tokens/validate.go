@@ -70,16 +70,22 @@ func ValidateImpl(r *http.Request, token string, owners []string) (string, error
 		return "", err
 	}
 
+	errMsg := "Token verification failed.\n" +
+		"Please check the following check lists.\n" +
+		"1. Does token really belong to you?\n" +
+		"2. Is the user ID described `owners` in poac.yml\n" +
+		"    the same as that of GitHub account?"
+
 	for _, v := range owners {
 		userDocId, err := getUserDocumentId(r, v)
 		if err != nil {
-			return "", err
+			return "", errors.New(errMsg)
 		}
 		if userDocId == tokenOwner {
 			return "ok", nil
 		}
 	}
-	return "err", nil
+	return "", errors.New(errMsg)
 }
 
 func Validate() echo.HandlerFunc {
