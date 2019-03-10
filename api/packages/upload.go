@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	//"gopkg.in/src-d/go-license-detector.v2/licensedb"
+	//"gopkg.in/src-d/go-license-detector.v2/licensedb/filer"
 )
 
 type ValidateBody struct {
@@ -69,20 +71,11 @@ func checkExists(c echo.Context, name string, version string) error {
 
 // TODO: If exist it and match owner, can update it. (next version)
 func checkToken(r *http.Request, token string, owners []string) error {
-	res, err := tokens.ValidateImpl(r, token, owners)
+	_, err := tokens.ValidateImpl(r, token, owners)
 	if err != nil {
 		return err
 	}
-
-	if res == "ok" {
-		return nil
-	} else {
-		return errors.New("Token verification failed.\n" +
-			"Please check the following check lists.\n" +
-			"1. Does token really belong to you?\n" +
-			"2. Is the user ID described `owners` in poac.yml\n" +
-			"    the same as that of GitHub account?")
-	}
+	return nil
 }
 
 func getOwners(yamlOwners interface{}) []string {
@@ -150,7 +143,7 @@ func checkConfigFile(c echo.Context, packageFileName string, yamlByte []byte) (s
 	return packageName, config, nil
 }
 
-func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
+func unTarGz(fileBuf io.Reader) (map[string][]byte, error) {
 	gzipReader, err := gzip.NewReader(fileBuf)
 	if err != nil {
 		return map[string][]byte{}, err
@@ -183,10 +176,45 @@ func unTarGzip(fileBuf io.Reader) (map[string][]byte, error) {
 	return buffers, nil
 }
 
+//type targzNode struct {
+//	children map[string]*targzNode
+//	file     *zip.File
+//}
+//
+//type targzFiler struct {
+//	arch *zip.ReadCloser
+//	tree *targzNode
+//}
+//
+//func FromTarGz(path string) (filer.Filer, error) {
+//	arch, err := zip.OpenReader(path)
+//	if err != nil {
+//		return nil, err
+//	}
+//	root := &targzNode{children: map[string]*targzNode{}}
+//	for _, f := range arch.File {
+//		path := strings.Split(f.Name, "/") // zip always has "/"
+//		node := root
+//		for _, part := range path {
+//			if part == "" {
+//				continue
+//			}
+//			child := node.children[part]
+//			if child == nil {
+//				child = &targzNode{children: map[string]*targzNode{}}
+//				node.children[part] = child
+//			}
+//			node = child
+//		}
+//		node.file = f
+//	}
+//	return &targzFiler{arch: arch, tree: root}, nil
+//}
+
 func extractConfig(packageFile multipart.File) (*bytes.Buffer, map[string][]byte, error) {
 	fileBuf := bytes.NewBuffer(nil)
 	teeFile := io.TeeReader(packageFile, fileBuf)
-	fileBytes, err := unTarGzip(teeFile)
+	fileBytes, err := unTarGz(teeFile)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -244,7 +272,7 @@ func Upload() echo.HandlerFunc {
 		//for k, v := range licenses {
 		//	fmt.Printf("%v, %v\n", k, v)
 		//} // GPL-3.0という文字列を含んでいれば，それにする
-		// TODO: configの，licenseキーを上書きする必要がある
+		//// TODO: configの，licenseキーを上書きする必要がある
 
 
 		err = createPackage(c.Request(), &Package{
