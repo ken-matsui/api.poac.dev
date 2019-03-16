@@ -232,7 +232,11 @@ func loadFile(c echo.Context) (string, multipart.File, error) {
 	}
 
 	src, err := packageFile.Open()
-	return packageFile.Filename, src, err
+	if err != nil {
+		return "", nil, err
+	}
+
+	return packageFile.Filename, src, nil
 }
 
 func loadFileAndConfig(c echo.Context) (string, *bytes.Buffer, map[string][]byte, error) {
@@ -253,7 +257,7 @@ func Upload() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		packageFileName, fileBuf, fileBytes, err := loadFileAndConfig(c)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			return err
 		}
 		if _, ok := fileBytes["poac.yml"]; !ok {
 			return echo.NewHTTPError(http.StatusInternalServerError, "poac.yml does not exist")
@@ -261,7 +265,7 @@ func Upload() echo.HandlerFunc {
 
 		packageName, config, err := checkConfigFile(c, packageFileName, fileBytes["poac.yml"])
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			return err
 		}
 
 
