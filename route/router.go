@@ -20,7 +20,7 @@ func Init() *echo.Echo {
 		archiveRoute := packagesRoute.Group("/archive")
 		{
 			archiveRoute.GET("/:name/:version", packages.Archive())
-			archiveRoute.GET("/:org/:name/:version", packages.ArchiveDeps())
+			archiveRoute.GET("/:org/:name/:version", packages.ArchiveOrg())
 		}
 		depsRoute := packagesRoute.Group("/deps")
 		{
