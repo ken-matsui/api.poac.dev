@@ -73,7 +73,7 @@ func Archive() echo.HandlerFunc {
 	}
 }
 
-func ArchiveDeps() echo.HandlerFunc {
+func ArchiveOrg() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		name := c.Param("org") + "-" + c.Param("name")
 		version := c.Param("version")
