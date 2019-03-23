@@ -32,6 +32,11 @@ func Init() *echo.Echo {
 			existsRoute.GET("/:name/:version", packages.Exists())
 			existsRoute.GET("/:org/:name/:version", packages.ExistsOrg())
 		}
+		readmeRoute := packagesRoute.Group("/readme")
+		{
+			readmeRoute.GET("/:name/:version", packages.Readme())
+			readmeRoute.GET("/:org/:name/:version", packages.ReadmeOrg())
+		}
 		versionsRoute := packagesRoute.Group("/versions")
 		{
 			versionsRoute.GET("/:name", packages.Versions())
