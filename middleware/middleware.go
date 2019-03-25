@@ -42,4 +42,7 @@ func Set(e *echo.Echo) {
 	e.Use(middleware.Gzip())
 	e.Use(CacheControlHeader)
 	e.Use(LimitHandler())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5000", "https://poac.pm", "https://poac.io"},
+	}))
 }
