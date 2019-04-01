@@ -16,5 +16,5 @@ require (
 	github.com/swaggo/swag v1.4.1
 	golang.org/x/net v0.0.0-20190310074541-c10a0554eabf
 	google.golang.org/api v0.1.0
-	google.golang.org/appengine v1.4.0
+	google.golang.org/appengine v1.5.0
 )
