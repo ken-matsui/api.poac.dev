@@ -9,7 +9,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/didip/tollbooth v4.0.0+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/labstack/echo/v4 v4.0.0
+	github.com/labstack/echo/v4 v4.1.5
 	github.com/newrelic/go-agent v2.7.0+incompatible
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/swaggo/echo-swagger/v2 v2.0.0-20190219082602-1a361fc821b8
