@@ -4,11 +4,13 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"github.com/ghodss/yaml"
 	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/api/tokens"
 	"github.com/poacpm/api.poac.pm/misc"
+	"google.golang.org/appengine/log"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -24,15 +26,66 @@ type ValidateBody struct {
 	Owners []string `json:"owners"`
 }
 
+type Links struct {
+	Homepage string `json:"homepage"`
+	Github string `json:"github"`
+}
+
+type Config struct {
+	// Loaded config
+	Name string `json:"name"`
+	Version string `json:"version"`
+	CppVersion float64 `json:"cpp_version"`
+	Description string `json:"description"`
+	Owners []string `json:"owners"`
+	License string `json:"license"` // TODO: 将来的に，Auto generated configへ移動
+	Links Links `json:"links"`
+	Deps map[string]interface{} `json:"deps"`
+	Build map[string]interface{} `json:"build"`
+	Test map[string]interface{} `json:"test"`
+	// Auto generated config
+	BuildFlag bool `json:"build_flag"`
+}
+
 type Package struct {
 	Name string
-	Config map[string]interface{}
+	Config Config
 	PackageBuf *bytes.Buffer
 	ReadmeBuf map[string][]byte
 }
 
+func StructToJsonTagMap(data interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	b, _ := json.Marshal(data)
+	json.Unmarshal(b, &result)
+
+	return result
+}
+
+func CreateDoc(r *http.Request, config Config) error {
+	ctx, app, err := misc.NewFirebaseApp(r)
+	if err != nil {
+		return err
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	b := StructToJsonTagMap(config)
+	_, _, err = client.Collection("packages").Add(ctx, b)
+	if err != nil {
+		log.Debugf(ctx, "Failed adding collection: %v", err)
+		return err
+	}
+	return nil
+}
+
 func createPackage(r *http.Request, packageData *Package) error {
-	err := misc.CreateDoc(r, packageData.Config)
+	err := CreateDoc(r, packageData.Config)
 	if err != nil {
 		return err
 	}
@@ -87,57 +140,110 @@ func getOwners(yamlOwners interface{}) []string {
 	return owners
 }
 
-func checkConfigFile(c echo.Context, packageFileName string, yamlByte []byte) (string, map[string]interface{}, error) {
-	config := make(map[string]interface{})
-	err := yaml.Unmarshal(yamlByte, &config)
-	if err != nil {
-		return "", nil, err
+func getLinks(yamlLinks interface{}) Links {
+	if yamlLinks == nil {
+		return Links{}
 	}
 
-	configName := config["name"].(string)
-	err = misc.CheckPackageName(configName)
-	if err != nil {
-		return "", nil, err
+	links := Links{}
+
+	LinksInterface := yamlLinks.(map[string]interface{})
+	if homepage, ok := LinksInterface["homepage"]; ok {
+		links.Homepage = homepage.(string)
+	} else {
+		links.Homepage = ""
+	}
+	if github, ok := LinksInterface["github"]; ok {
+		links.Github = github.(string)
+	} else {
+		links.Github = ""
 	}
 
-	configDesc := config["description"].(string)
-	if configDesc == "**TODO: Add description**" {
+	return links
+}
+
+func checkConfigFile(c echo.Context, packageFileName string, yamlByte []byte) (string, Config, error) {
+	loadedConfig := make(map[string]interface{})
+	err := yaml.Unmarshal(yamlByte, &loadedConfig)
+	if err != nil {
+		return "", Config{}, err
+	}
+
+	config := Config{}
+
+	config.Name = loadedConfig["name"].(string)
+	err = misc.CheckPackageName(config.Name)
+	if err != nil {
+		return "", Config{}, err
+	}
+
+	config.Description = loadedConfig["description"].(string)
+	if config.Description == "**TODO: Add description**" {
 		errStr := "Invalid description.\nIt is prohibited to use the same as the output of `poac new`."
-		return "", nil, errors.New(errStr)
+		return "", Config{}, errors.New(errStr)
 	}
 
-	configCppVersion := config["cpp_version"].(float64)
+	config.CppVersion = loadedConfig["cpp_version"].(float64)
 	files := []float64{98, 3, 11, 14, 17, 20}
 	sort.Float64s(files)
 	i := sort.Search(len(files),
-		func(i int) bool { return files[i] >= configCppVersion })
-	if !(i < len(files) && files[i] == configCppVersion) {
+		func(i int) bool { return files[i] >= config.CppVersion })
+	if !(i < len(files) && files[i] == config.CppVersion) {
 		errStr := "Invalid cpp_version.\nPlease select one of 98, 03, 11, 14, 17, 20." // TODO: 詳細ドキュメントを用意する
-		return "", nil, errors.New(errStr)
+		return "", Config{}, errors.New(errStr)
 	}
 
-	configVersion := config["version"].(string)
-	err = misc.CheckPackageVersion(configVersion)
+	config.Version = loadedConfig["version"].(string)
+	err = misc.CheckPackageVersion(config.Version)
 	if err != nil {
-		return "", nil, err
+		return "", Config{}, err
 	}
 
 	// package name error
-	packageName := strings.Replace(configName, "/", "-", -1) + "-" + configVersion
+	packageName := strings.Replace(config.Name, "/", "-", -1) + "-" + config.Version
 	if packageName+".tar.gz" != packageFileName {
 		errStr := packageFileName + " is an invalid name.\nIt must be replace(name, \"/\", \"-\") + \"-\" + version."
-		return "", nil, errors.New(errStr)
+		return "", Config{}, errors.New(errStr)
 	}
 	// TODO: name-version.tar.gz -extract> [name-version/poac.yml, ...] if name-version is other it, error
 
-	err = checkExists(c, configName, configVersion)
+	err = checkExists(c, config.Name, config.Version)
 	if err != nil {
-		return "", nil, err
+		return "", Config{}, err
 	}
 
-	err = checkToken(c.Request(), c.FormValue("token"), getOwners(config["owners"]))
+	config.Owners = getOwners(loadedConfig["owners"])
+	err = checkToken(c.Request(), c.FormValue("token"), config.Owners)
 	if err != nil {
-		return "", nil, err
+		return "", Config{}, err
+	}
+
+	// ここまできたなら，config.Name, Description, Version, CppVersionがfillされている．
+	// 残りの情報をfillする．具体的には以下に挙げるもの．
+	// License, Links, Deps, Build, Test,
+	// BuildFlag
+	if license, ok := loadedConfig["license"]; ok {
+		config.License = license.(string)
+	} else {
+		config.License = ""
+	}
+	config.Links = getLinks(loadedConfig["links"])
+	if deps, ok := loadedConfig["deps"]; ok {
+		config.Deps = deps.(map[string]interface{})
+	} else {
+		config.Deps = nil
+	}
+	if build, ok := loadedConfig["build"]; ok {
+		config.Build = build.(map[string]interface{})
+		config.BuildFlag = true
+	} else {
+		config.Build = nil
+		config.BuildFlag = false
+	}
+	if test, ok := loadedConfig["test"]; ok {
+		config.Test = test.(map[string]interface{})
+	} else {
+		config.Test = nil
 	}
 
 	return packageName, config, nil
