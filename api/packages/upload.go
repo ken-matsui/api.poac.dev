@@ -9,14 +9,14 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/api/tokens"
 	"github.com/poacpm/api.poac.pm/misc"
+	//"gopkg.in/src-d/go-license-detector.v2/licensedb"
+	//"gopkg.in/src-d/go-license-detector.v2/licensedb/filer"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"sort"
 	"strings"
-	//"gopkg.in/src-d/go-license-detector.v2/licensedb"
-	//"gopkg.in/src-d/go-license-detector.v2/licensedb/filer"
 )
 
 type ValidateBody struct {
@@ -42,7 +42,7 @@ type Config struct {
 	Build map[string]interface{} `json:"build"`
 	Test map[string]interface{} `json:"test"`
 	// Auto generated config
-	LibraryType string `json:"library_type"`
+	PackageType string `json:"package_type"`
 }
 
 type Package struct {
@@ -224,10 +224,19 @@ func checkConfigFile(c echo.Context, packageFileName string, yamlByte []byte) (s
 	}
 	if build, ok := loadedConfig["build"]; ok {
 		config.Build = build.(map[string]interface{})
-		config.LibraryType = "build-required"
+		// binがtrueなら，PackageTypeは，applicationになる．
+		if bin, ok := config.Build["bin"]; ok {
+			if bin.(bool) {
+				config.PackageType = "application"
+			} else {
+				config.PackageType = "build-required library"
+			}
+		} else { // binが存在しない -> false扱い
+			config.PackageType = "build-required library"
+		}
 	} else {
 		config.Build = nil
-		config.LibraryType = "header-only"
+		config.PackageType = "header-only library"
 	}
 	if test, ok := loadedConfig["test"]; ok {
 		config.Test = test.(map[string]interface{})
@@ -305,6 +314,63 @@ func unTarGz(fileBuf io.Reader) (map[string][]byte, error) {
 //	}
 //	return &tarGzFiler{arch: arch, tree: root}, nil
 //}
+//
+//func (filer *tarGzFiler) ReadFile(path string) ([]byte, error) { // TODO: 何が読めれば良い？
+//	parts := strings.Split(path, string("/"))
+//	node := filer.tree
+//	for _, part := range parts {
+//		if part == "" {
+//			continue
+//		}
+//		node = node.children[part]
+//		if node == nil {
+//			return nil, errors.New("does not exist: " + path)
+//		}
+//	}
+//	reader, err := node.file.Open()
+//	if err != nil {
+//		return nil, errors.New(err.Error() + "cannot open " + path)
+//	}
+//	defer reader.Close()
+//	buffer, err := ioutil.ReadAll(reader)
+//	if err != nil {
+//		return nil, errors.New(err.Error() + "cannot read " + path)
+//	}
+//	return buffer, nil
+//}
+//
+//func (fl tarGzFiler) ReadDir(path string) ([]filer.File, error) {
+//	parts := strings.Split(path, string("/"))
+//	node := fl.tree
+//	for _, part := range parts {
+//		if part == "" {
+//			continue
+//		}
+//		node = node.children[part]
+//		if node == nil {
+//			return nil, errors.New("does not exist: " + path)
+//		}
+//	}
+//	if path != "" && !node.file.FileInfo().IsDir() {
+//		return nil, errors.New("not a directory: " + path)
+//	}
+//	result := make([]filer.File, 0, len(node.children))
+//	for name, child := range node.children {
+//		result = append(result, filer.File{
+//			Name:  name,
+//			IsDir: child.file.FileInfo().IsDir(),
+//		})
+//	}
+//	return result, nil
+//}
+//
+//func (filer *tarGzFiler) Close() {
+//	filer.arch.Close()
+//}
+//
+//func (filer *tarGzFiler) PathsAreAlwaysSlash() bool {
+//	return true
+//}
 
 func extractConfig(packageFile multipart.File) (*bytes.Buffer, map[string][]byte, error) {
 	fileBuf := bytes.NewBuffer(nil)
@@ -364,14 +430,18 @@ func Upload() echo.HandlerFunc {
 		}
 
 
+		//fl, err := FromTarGz("")
+		//licenses, err := licensedb.Detect(fl)
+		//for k, v := range licenses {
+		//	fmt.Printf("%v, %v\n", k, v)
+		//} // GPL-3.0という文字列を含んでいれば，それにする
+		// TODO: configの，licenseキーを上書きする必要がある
+
 		//filer.FromZIP()
 		//fl, err := filer.FromDirectory("/path/to/project")
 		//// https://github.com/src-d/go-license-detector#algorithm
 		//licenses, err := licensedb.Detect(fl) // TODO: errorなら，LICENSEが存在しない -> no license file was found -> licenseぽかったら読む
-		//for k, v := range licenses {
-		//	fmt.Printf("%v, %v\n", k, v)
-		//} // GPL-3.0という文字列を含んでいれば，それにする
-		//// TODO: configの，licenseキーを上書きする必要がある
+
 
 
 		err = createPackage(c.Request(), &Package{
