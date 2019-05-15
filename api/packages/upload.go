@@ -27,8 +27,8 @@ type ValidateBody struct {
 }
 
 type Links struct {
-	Homepage string `json:"homepage"`
 	Github string `json:"github"`
+	Homepage string `json:"homepage"`
 }
 
 type Config struct {
@@ -44,7 +44,7 @@ type Config struct {
 	Build map[string]interface{} `json:"build"`
 	Test map[string]interface{} `json:"test"`
 	// Auto generated config
-	BuildFlag bool `json:"build_flag"`
+	LibraryType string `json:"library_type"`
 }
 
 type Package struct {
@@ -75,8 +75,21 @@ func CreateDoc(r *http.Request, config Config) error {
 	}
 	defer client.Close()
 
-	b := StructToJsonTagMap(config)
-	_, _, err = client.Collection("packages").Add(ctx, b)
+	configMap := StructToJsonTagMap(config)
+
+	// structの状態ではnullにできなかったので""(空文字)にしていた．
+	// それを，mapに変換後の状態を利用して，nullにする．
+	if configMap["license"] == "" {
+		configMap["license"] = nil
+	}
+	if configMap["links"].(map[string]interface{})["github"] == "" {
+		configMap["links"].(map[string]interface{})["github"] = nil
+	}
+	if configMap["links"].(map[string]interface{})["homepage"] == "" {
+		configMap["links"].(map[string]interface{})["homepage"] = nil
+	}
+
+	_, _, err = client.Collection("packages").Add(ctx, configMap)
 	if err != nil {
 		log.Debugf(ctx, "Failed adding collection: %v", err)
 		return err
@@ -235,10 +248,10 @@ func checkConfigFile(c echo.Context, packageFileName string, yamlByte []byte) (s
 	}
 	if build, ok := loadedConfig["build"]; ok {
 		config.Build = build.(map[string]interface{})
-		config.BuildFlag = true
+		config.LibraryType = "build-required"
 	} else {
 		config.Build = nil
-		config.BuildFlag = false
+		config.LibraryType = "header-only"
 	}
 	if test, ok := loadedConfig["test"]; ok {
 		config.Test = test.(map[string]interface{})
