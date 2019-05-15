@@ -4,13 +4,11 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"github.com/ghodss/yaml"
 	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/api/tokens"
 	"github.com/poacpm/api.poac.pm/misc"
-	"google.golang.org/appengine/log"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -54,31 +52,14 @@ type Package struct {
 	ReadmeBuf map[string][]byte
 }
 
-func StructToJsonTagMap(data interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
-
-	b, _ := json.Marshal(data)
-	json.Unmarshal(b, &result)
-
-	return result
-}
-
-func CreateDoc(r *http.Request, config Config) error {
-	ctx, app, err := misc.NewFirebaseApp(r)
+func createPackage(r *http.Request, packageData *Package) error {
+	configMap, err := misc.StructToJsonTagMap(packageData.Config)
 	if err != nil {
 		return err
 	}
-
-	client, err := app.Firestore(ctx)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	configMap := StructToJsonTagMap(config)
 
 	// structの状態ではnullにできなかったので""(空文字)にしていた．
-	// それを，mapに変換後の状態を利用して，nullにする．
+	// それを，mapに変換後の状態を利用して，nullにする．// TODO: EmptyToNull
 	if configMap["license"] == "" {
 		configMap["license"] = nil
 	}
@@ -89,16 +70,7 @@ func CreateDoc(r *http.Request, config Config) error {
 		configMap["links"].(map[string]interface{})["homepage"] = nil
 	}
 
-	_, _, err = client.Collection("packages").Add(ctx, configMap)
-	if err != nil {
-		log.Debugf(ctx, "Failed adding collection: %v", err)
-		return err
-	}
-	return nil
-}
-
-func createPackage(r *http.Request, packageData *Package) error {
-	err := CreateDoc(r, packageData.Config)
+	err = misc.CreateDoc(r, configMap)
 	if err != nil {
 		return err
 	}
@@ -295,14 +267,14 @@ func unTarGz(fileBuf io.Reader) (map[string][]byte, error) {
 	return buffers, nil
 }
 
-//type targzNode struct {
-//	children map[string]*targzNode
+//type tarGzNode struct {
+//	children map[string]*tarGzNode
 //	file     *zip.File
 //}
 //
-//type targzFiler struct {
+//type tarGzFiler struct {
 //	arch *zip.ReadCloser
-//	tree *targzNode
+//	tree *tarGzNode
 //}
 //
 //func FromTarGz(path string) (filer.Filer, error) {
@@ -310,7 +282,7 @@ func unTarGz(fileBuf io.Reader) (map[string][]byte, error) {
 //	if err != nil {
 //		return nil, err
 //	}
-//	root := &targzNode{children: map[string]*targzNode{}}
+//	root := &tarGzNode{children: map[string]*tarGzNode{}}
 //	for _, f := range arch.File {
 //		path := strings.Split(f.Name, "/") // zip always has "/"
 //		node := root
@@ -320,14 +292,14 @@ func unTarGz(fileBuf io.Reader) (map[string][]byte, error) {
 //			}
 //			child := node.children[part]
 //			if child == nil {
-//				child = &targzNode{children: map[string]*targzNode{}}
+//				child = &tarGzNode{children: map[string]*tarGzNode{}}
 //				node.children[part] = child
 //			}
 //			node = child
 //		}
 //		node.file = f
 //	}
-//	return &targzFiler{arch: arch, tree: root}, nil
+//	return &tarGzFiler{arch: arch, tree: root}, nil
 //}
 
 func extractConfig(packageFile multipart.File) (*bytes.Buffer, map[string][]byte, error) {
