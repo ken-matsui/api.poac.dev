@@ -52,6 +52,18 @@ type Package struct {
 	ReadmeBuf map[string][]byte
 }
 
+func EmptyToNull(m map[string]interface{}) {
+	if m["license"] == "" {
+		m["license"] = nil
+	}
+	if m["links"].(map[string]interface{})["github"] == "" {
+		m["links"].(map[string]interface{})["github"] = nil
+	}
+	if m["links"].(map[string]interface{})["homepage"] == "" {
+		m["links"].(map[string]interface{})["homepage"] = nil
+	}
+}
+
 func createPackage(r *http.Request, packageData *Package) error {
 	configMap, err := misc.StructToJsonTagMap(packageData.Config)
 	if err != nil {
@@ -59,16 +71,8 @@ func createPackage(r *http.Request, packageData *Package) error {
 	}
 
 	// structの状態ではnullにできなかったので""(空文字)にしていた．
-	// それを，mapに変換後の状態を利用して，nullにする．// TODO: EmptyToNull
-	if configMap["license"] == "" {
-		configMap["license"] = nil
-	}
-	if configMap["links"].(map[string]interface{})["github"] == "" {
-		configMap["links"].(map[string]interface{})["github"] = nil
-	}
-	if configMap["links"].(map[string]interface{})["homepage"] == "" {
-		configMap["links"].(map[string]interface{})["homepage"] = nil
-	}
+	// それを，mapに変換後の状態を利用して，nullにする．
+	EmptyToNull(configMap)
 
 	err = misc.CreateDoc(r, configMap)
 	if err != nil {
