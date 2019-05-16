@@ -17,4 +17,5 @@ require (
 	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
 	google.golang.org/api v0.4.0
 	google.golang.org/appengine v1.5.0
+	gopkg.in/src-d/go-license-detector.v2 v2.0.1 // indirect
 )

@@ -9,8 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/api/tokens"
 	"github.com/poacpm/api.poac.pm/misc"
-	//"gopkg.in/src-d/go-license-detector.v2/licensedb"
-	//"gopkg.in/src-d/go-license-detector.v2/licensedb/filer"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -35,7 +33,7 @@ type Config struct {
 	Version string `json:"version"`
 	CppVersion float64 `json:"cpp_version"`
 	Description string `json:"description"`
-	Owners []string `json:"owners"`
+	Owners []string `json:"owners"` // TODO: gitconfigの情報を元に構築できるかも
 	License string `json:"license"` // TODO: 将来的に，Auto generated configへ移動
 	Links Links `json:"links"`
 	Deps map[string]interface{} `json:"deps"`
@@ -250,7 +248,7 @@ func checkConfigFile(c echo.Context, packageFileName string, yamlByte []byte) (s
 func unTarGz(fileBuf io.Reader) (map[string][]byte, error) {
 	gzipReader, err := gzip.NewReader(fileBuf)
 	if err != nil {
-		return map[string][]byte{}, err
+		return nil, err
 	}
 	defer gzipReader.Close()
 
@@ -262,115 +260,27 @@ func unTarGz(fileBuf io.Reader) (map[string][]byte, error) {
 		if err == io.EOF {
 			break
 		}
+		if err != nil {
+			return nil, err
+		}
+
 		// name-version/poac.yml
 		if strings.Count(tarHeader.Name, "/") == 1 && strings.Contains(tarHeader.Name, "poac.yml") {
 			buf, err := ioutil.ReadAll(tarReader)
 			if err != nil {
-				return map[string][]byte{}, err
+				return nil, err
 			}
 			buffers["poac.yml"] = buf
 		} else if strings.Count(tarHeader.Name, "/") == 1 && strings.Contains(tarHeader.Name, "README.md") {
 			buf, err := ioutil.ReadAll(tarReader)
 			if err != nil {
-				return map[string][]byte{}, err
+				return nil, err
 			}
 			buffers["README.md"] = buf
 		}
 	}
 	return buffers, nil
 }
-
-//type tarGzNode struct {
-//	children map[string]*tarGzNode
-//	file     *zip.File
-//}
-//
-//type tarGzFiler struct {
-//	arch *zip.ReadCloser
-//	tree *tarGzNode
-//}
-//
-//func FromTarGz(path string) (filer.Filer, error) {
-//	arch, err := zip.OpenReader(path)
-//	if err != nil {
-//		return nil, err
-//	}
-//	root := &tarGzNode{children: map[string]*tarGzNode{}}
-//	for _, f := range arch.File {
-//		path := strings.Split(f.Name, "/") // zip always has "/"
-//		node := root
-//		for _, part := range path {
-//			if part == "" {
-//				continue
-//			}
-//			child := node.children[part]
-//			if child == nil {
-//				child = &tarGzNode{children: map[string]*tarGzNode{}}
-//				node.children[part] = child
-//			}
-//			node = child
-//		}
-//		node.file = f
-//	}
-//	return &tarGzFiler{arch: arch, tree: root}, nil
-//}
-//
-//func (filer *tarGzFiler) ReadFile(path string) ([]byte, error) { // TODO: 何が読めれば良い？
-//	parts := strings.Split(path, string("/"))
-//	node := filer.tree
-//	for _, part := range parts {
-//		if part == "" {
-//			continue
-//		}
-//		node = node.children[part]
-//		if node == nil {
-//			return nil, errors.New("does not exist: " + path)
-//		}
-//	}
-//	reader, err := node.file.Open()
-//	if err != nil {
-//		return nil, errors.New(err.Error() + "cannot open " + path)
-//	}
-//	defer reader.Close()
-//	buffer, err := ioutil.ReadAll(reader)
-//	if err != nil {
-//		return nil, errors.New(err.Error() + "cannot read " + path)
-//	}
-//	return buffer, nil
-//}
-//
-//func (fl tarGzFiler) ReadDir(path string) ([]filer.File, error) {
-//	parts := strings.Split(path, string("/"))
-//	node := fl.tree
-//	for _, part := range parts {
-//		if part == "" {
-//			continue
-//		}
-//		node = node.children[part]
-//		if node == nil {
-//			return nil, errors.New("does not exist: " + path)
-//		}
-//	}
-//	if path != "" && !node.file.FileInfo().IsDir() {
-//		return nil, errors.New("not a directory: " + path)
-//	}
-//	result := make([]filer.File, 0, len(node.children))
-//	for name, child := range node.children {
-//		result = append(result, filer.File{
-//			Name:  name,
-//			IsDir: child.file.FileInfo().IsDir(),
-//		})
-//	}
-//	return result, nil
-//}
-//
-//func (filer *tarGzFiler) Close() {
-//	filer.arch.Close()
-//}
-//
-//func (filer *tarGzFiler) PathsAreAlwaysSlash() bool {
-//	return true
-//}
 
 func extractConfig(packageFile multipart.File) (*bytes.Buffer, map[string][]byte, error) {
 	fileBuf := bytes.NewBuffer(nil)
@@ -428,21 +338,6 @@ func Upload() echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-
-
-		//fl, err := FromTarGz("")
-		//licenses, err := licensedb.Detect(fl)
-		//for k, v := range licenses {
-		//	fmt.Printf("%v, %v\n", k, v)
-		//} // GPL-3.0という文字列を含んでいれば，それにする
-		// TODO: configの，licenseキーを上書きする必要がある
-
-		//filer.FromZIP()
-		//fl, err := filer.FromDirectory("/path/to/project")
-		//// https://github.com/src-d/go-license-detector#algorithm
-		//licenses, err := licensedb.Detect(fl) // TODO: errorなら，LICENSEが存在しない -> no license file was found -> licenseぽかったら読む
-
-
 
 		err = createPackage(c.Request(), &Package{
 			Name: packageName,
