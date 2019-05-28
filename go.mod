@@ -3,19 +3,17 @@ module github.com/poacpm/api.poac.pm
 go 1.12
 
 require (
-	cloud.google.com/go v0.38.0
+	cloud.google.com/go v0.39.0
 	firebase.google.com/go v3.7.0+incompatible
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/didip/tollbooth v4.0.0+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/labstack/echo/v4 v4.1.5
-	github.com/newrelic/go-agent v2.7.0+incompatible
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/swaggo/echo-swagger/v2 v2.0.0-20190219082602-1a361fc821b8
+	github.com/swaggo/echo-swagger v0.0.0-20190329130007-1219b460a043
 	github.com/swaggo/swag v1.5.0
-	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
-	google.golang.org/api v0.4.0
-	google.golang.org/appengine v1.5.0
-	gopkg.in/src-d/go-license-detector.v2 v2.0.1 // indirect
+	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
+	google.golang.org/api v0.5.0
+	google.golang.org/appengine v1.6.0
 )
