@@ -7,7 +7,7 @@ import (
 	"github.com/poacpm/api.poac.pm/api/tokens"
 	_ "github.com/poacpm/api.poac.pm/docs"
 	"github.com/poacpm/api.poac.pm/middleware"
-	"github.com/swaggo/echo-swagger/v2"
+	"github.com/swaggo/echo-swagger"
 )
 
 func Init() *echo.Echo {
