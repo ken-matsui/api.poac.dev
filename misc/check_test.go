@@ -1,6 +1,6 @@
 // +build !appengine
 
-package main
+package misc_test
 
 import (
 	"github.com/poacpm/api.poac.pm/misc"
