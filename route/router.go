@@ -46,6 +46,7 @@ func Init() *echo.Echo {
 	}
 	e.POST("/tokens/validate", tokens.Validate())
 	e.GET("/flush-memcache", api.FlushMemcache())
+	e.GET("/firestore-export", api.FirestoreExport())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	return e
 }

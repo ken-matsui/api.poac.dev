@@ -2,3 +2,6 @@ cron: # deps, versions
 - description: "Flush Memcache"
   url: /flush-memcache
   schedule: every 1 hours # mins
+- description: "Daily Cloud Firestore Export"
+  url: /firestore-export
+  schedule: every 24 hours

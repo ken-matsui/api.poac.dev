@@ -9,3 +9,8 @@ handlers:
   login: admin
   auth_fail_action: unauthorized
   secure: always
+- url: /firestore-export
+  script: auto
+  login: admin
+  auth_fail_action: unauthorized
+  secure: always
