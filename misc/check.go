@@ -16,8 +16,8 @@ func CheckPackageName(name string) error {
 	} else if regexp.MustCompile("^(\\/|\\-|_)$").Match([]byte(string(name[len(name)-1]))) {
 		errStr := "Invalid name.\nIt is prohibited to use / or -, _ \n at the last for the project name."
 		return errors.New(errStr)
-	} else if regexp.MustCompile("^.*(\\/|\\-|_).*(\\/|\\-|_).*$").Match([]byte(name)) {
-		errStr := "Invalid name.\nIt is prohibited to use / or -, _ \n twice for the project name."
+	} else if regexp.MustCompile("^.*(\\/).*(\\/).*$").Match([]byte(name)) {
+		errStr := "Invalid name.\nIt is prohibited to use / \n twice for the project name."
 		return errors.New(errStr)
 	} else if !regexp.MustCompile("^([a-z|\\d|\\-|_|\\/]*)$").Match([]byte(name)) {
 		errStr := "Invalid name.\nIt is prohibited to use a character string that does not match ^([a-z|\\d|\\-|_|\\/]*)$ in the project name."
