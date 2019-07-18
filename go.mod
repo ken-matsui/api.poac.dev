@@ -17,5 +17,5 @@ require (
 	go.opencensus.io v0.21.0
 	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 	google.golang.org/api v0.5.0
-	google.golang.org/appengine v1.6.0
+	google.golang.org/appengine v1.6.1
 )
