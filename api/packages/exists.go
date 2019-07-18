@@ -42,19 +42,7 @@ func handleExists(c echo.Context, name string, version string) (bool, error) {
 
 func Exists() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		name := c.Param("name")
-		version := c.Param("version")
-		isExists, err := handleExists(c, name, version)
-		if err != nil {
-			return err
-		}
-		return c.String(http.StatusOK, strconv.FormatBool(isExists))
-	}
-}
-
-func ExistsOrg() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		name := c.Param("org") + "/" + c.Param("name")
+		name := c.Param("owner") + "/" + c.Param("name")
 		version := c.Param("version")
 		isExists, err := handleExists(c, name, version)
 		if err != nil {

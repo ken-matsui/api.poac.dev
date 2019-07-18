@@ -96,15 +96,7 @@ func handleDepsCache(c echo.Context, name string, version string) error {
 
 func Deps() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		name := c.Param("name")
-		version := c.Param("version")
-		return handleDepsCache(c, name, version)
-	}
-}
-
-func DepsOrg() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		name := c.Param("org") + "/" + c.Param("name")
+		name := c.Param("owner") + "/" + c.Param("name")
 		version := c.Param("version")
 		return handleDepsCache(c, name, version)
 	}
