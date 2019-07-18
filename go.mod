@@ -10,7 +10,7 @@ require (
 	github.com/didip/tollbooth v4.0.0+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-github/v27 v27.0.0
-	github.com/labstack/echo/v4 v4.1.5
+	github.com/labstack/echo/v4 v4.1.6
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/swaggo/echo-swagger v0.0.0-20190329130007-1219b460a043
 	github.com/swaggo/swag v1.5.0
