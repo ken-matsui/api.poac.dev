@@ -15,7 +15,7 @@ require (
 	github.com/swaggo/echo-swagger v0.0.0-20190329130007-1219b460a043
 	github.com/swaggo/swag v1.5.0
 	go.opencensus.io v0.21.0
-	golang.org/x/net v0.0.0-20190603091049-60506f45cf65
+	golang.org/x/net v0.0.0-20190607181551-461777fb6f67
 	google.golang.org/api v0.5.0
 	google.golang.org/appengine v1.6.1
 )
