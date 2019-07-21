@@ -14,3 +14,6 @@ handlers:
   login: admin
   auth_fail_action: unauthorized
   secure: always
+
+includes:
+  - secret.yaml

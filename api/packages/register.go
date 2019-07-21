@@ -9,10 +9,13 @@ import (
 	"github.com/google/go-github/v27/github"
 	"github.com/labstack/echo/v4"
 	"github.com/poacpm/api.poac.pm/misc"
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/urlfetch"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"unsafe"
@@ -104,9 +107,9 @@ func getDepsFromConfigYaml(configYaml map[string]interface{}, key string) map[st
 	return nil
 }
 
-func validateCommitSha(c echo.Context, version string, client *github.Client) (string, error) {
+func validateCommitSha(c echo.Context, ctx context.Context, version string, client *github.Client) (string, error) {
 	commitSha := c.FormValue("commit_sha")
-	git, _, err := client.Git.GetRef(appengine.NewContext(c.Request()), c.FormValue("owner"), c.FormValue("repo"), "refs/tags/" + version)
+	git, _, err := client.Git.GetRef(ctx, c.FormValue("owner"), c.FormValue("repo"), "refs/tags/" + version)
 	if err != nil {
 		return "", err
 	}
@@ -154,9 +157,9 @@ func validateCppVersion(c echo.Context, configYaml map[string]interface{}) (floa
 	return cppVersion, nil
 }
 
-func validateDescription(c echo.Context, client *github.Client) (string, error) {
+func validateDescription(c echo.Context, ctx context.Context, client *github.Client) (string, error) {
 	description := c.FormValue("description")
-	repo, _, err := client.Repositories.Get(appengine.NewContext(c.Request()), c.FormValue("owner"), c.FormValue("repo"))
+	repo, _, err := client.Repositories.Get(ctx, c.FormValue("owner"), c.FormValue("repo"))
 	if err != nil {
 		return "", err
 	}
@@ -249,7 +252,7 @@ func openConfigFile(c echo.Context) (map[string]interface{}, error) {
 	return configYaml, nil
 }
 
-func validateConfig(c echo.Context, client *github.Client) (Config, error) {
+func validateConfig(c echo.Context, ctx context.Context, client *github.Client) (Config, error) {
 	config := Config{}
 	configYaml, err := openConfigFile(c)
 	if err != nil {
@@ -272,7 +275,7 @@ func validateConfig(c echo.Context, client *github.Client) (Config, error) {
 		return Config{}, err
 	}
 
-	config.Description, err = validateDescription(c, client)
+	config.Description, err = validateDescription(c, ctx, client)
 	if err != nil {
 		return Config{}, err
 	}
@@ -287,7 +290,7 @@ func validateConfig(c echo.Context, client *github.Client) (Config, error) {
 		return Config{}, err
 	}
 
-	config.CommitSha, err = validateCommitSha(c, config.Version, client)
+	config.CommitSha, err = validateCommitSha(c, ctx, config.Version, client)
 	if err != nil {
 		return Config{}, err
 	}
@@ -297,7 +300,7 @@ func validateConfig(c echo.Context, client *github.Client) (Config, error) {
 	config.BuildDependencies = getDepsFromConfigYaml(configYaml, "build_dependencies")
 	config.Build = getBuildFromConfigYaml(configYaml)
 	config.Test = getTestFromConfigYaml(configYaml)
-	config.Readme = getReadme(c, urlfetch.Client(appengine.NewContext(c.Request())))
+	config.Readme = getReadme(c, urlfetch.Client(ctx))
 
 	return config, nil
 }
@@ -305,9 +308,13 @@ func validateConfig(c echo.Context, client *github.Client) (Config, error) {
 func Register() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := appengine.NewContext(c.Request())
-		client := github.NewClient(urlfetch.Client(ctx))
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: os.Getenv("POAC_GITHUB_API_TOKEN")},
+		)
+		tc := oauth2.NewClient(ctx, ts)
+		client := github.NewClient(tc)
 
-		config, err := validateConfig(c, client)
+		config, err := validateConfig(c, ctx, client)
 		if err != nil {
 			return err
 		}
