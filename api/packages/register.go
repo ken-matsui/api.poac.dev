@@ -15,7 +15,7 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
-	"strings"
+	"unsafe"
 )
 
 type Config struct {
@@ -27,11 +27,13 @@ type Config struct {
 	Build map[string]interface{} `json:"build"`
 	Test map[string]interface{} `json:"test"`
 	// Auto generate
-	Name string `json:"name"`
+	Owner string `json:"owner"`
+	Repo string `json:"repo"`
 	Version string `json:"version"`
 	Description string `json:"description"`
 	PackageType string `json:"package_type"`
 	CommitSha string `json:"commit_sha"`
+	Readme string `json:"readme"`
 }
 
 func structToJsonTagMap(data interface{}) (map[string]interface{}, error) {
@@ -61,6 +63,21 @@ func registerPackage(r *http.Request, config *Config) error {
 	return nil
 }
 
+func getReadme(c echo.Context, client *http.Client) string {
+	url := "https://raw.githubusercontent.com/" + c.FormValue("owner") + "/" +
+		   c.FormValue("repo") + "/" + c.FormValue("version") + "/README.md"
+	resp, err := client.Get(url)
+	if err != nil {
+		return ""
+	}
+	if resp.StatusCode == 404 {
+		return ""
+	}
+
+	buffer, err := ioutil.ReadAll(resp.Body)
+	return *(*string)(unsafe.Pointer(&buffer))
+}
+
 func getTestFromConfigYaml(configYaml map[string]interface{}) map[string]interface{} {
 	if test, ok := configYaml["test"]; ok {
 		return test.(map[string]interface{})
@@ -82,10 +99,9 @@ func getDepsFromConfigYaml(configYaml map[string]interface{}, key string) map[st
 	return nil
 }
 
-func validateCommitSha(c echo.Context, name, version string, client *github.Client) (string, error) {
+func validateCommitSha(c echo.Context, version string, client *github.Client) (string, error) {
 	commitSha := c.FormValue("commit_sha")
-	ownerAndName := strings.Split(name, "/")
-	git, _, err := client.Git.GetRef(appengine.NewContext(c.Request()), ownerAndName[0], ownerAndName[1], "refs/tags/" + version)
+	git, _, err := client.Git.GetRef(appengine.NewContext(c.Request()), c.FormValue("owner"), c.FormValue("repo"), "refs/tags/" + version)
 	if err != nil {
 		return "", err
 	}
@@ -133,28 +149,30 @@ func validateCppVersion(c echo.Context, configYaml map[string]interface{}) (floa
 	return cppVersion, nil
 }
 
-func validateDescription(c echo.Context, name string, client *github.Client) (string, error) {
+func validateDescription(c echo.Context, client *github.Client) (string, error) {
 	description := c.FormValue("description")
-	ownerAndName := strings.Split(name, "/")
-	repo, _, err := client.Repositories.Get(appengine.NewContext(c.Request()), ownerAndName[0], ownerAndName[1])
+	repo, _, err := client.Repositories.Get(appengine.NewContext(c.Request()), c.FormValue("owner"), c.FormValue("repo"))
 	if err != nil {
 		return "", err
 	}
 	if description != *repo.Description  {
 		return "", errors.New("invalid description")
 	}
+
+	if description == "null" {
+		return "", nil
+	}
 	return description, nil
 }
 
-func verifyExists(c echo.Context, name string, version string) error {
-	ownerAndName := strings.Split(name, "/")
-	isExists, err := handleExists(c, ownerAndName[0], ownerAndName[1], version)
+func verifyExists(c echo.Context, version string) error {
+	isExists, err := handleExists(c, c.FormValue("owner"), c.FormValue("repo"), version)
 	if err == nil {
 		return err
 	}
 
 	if isExists {
-		return errors.New("Already " + name + ": " + version + "is exists")
+		return errors.New("Already " + c.FormValue("owner") + "/" +  c.FormValue("repo") + ": " + version + "is exists")
 	} else {
 		return nil
 	}
@@ -171,10 +189,10 @@ func validateVersion(c echo.Context) (string, error) {
 	return version, nil
 }
 
-func validateName(c echo.Context) (string, error) {
-	name := c.FormValue("name")
-	if !regexp.MustCompile("^([a-z|\\d|\\-|_|\\/]*)$").Match([]byte(name)) {
-		errStr := "Invalid name.\nIt is prohibited to use a character string that does not match ^([a-z|\\d|\\-|_|\\/]*)$ in the project name."
+func validateRepo(c echo.Context) (string, error) {
+	repo := c.FormValue("repo")
+	if !regexp.MustCompile("^([a-z|\\d|\\-|_]*)$").Match([]byte(repo)) {
+		errStr := "Invalid name.\nIt is prohibited to use a character string that does not match ^([a-z|\\d|\\-|_]*)$ in the project name."
 		return "", errors.New(errStr)
 	}
 
@@ -193,12 +211,12 @@ func validateName(c echo.Context) (string, error) {
 		"virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq",
 	}
 	for _, v := range blacklist {
-		if name == v {
+		if repo == v {
 			errStr := v + "is a keyword, so it cannot be used as a package name."
 			return "", errors.New(errStr)
 		}
 	}
-	return name, nil
+	return repo, nil
 }
 
 func openConfigFile(c echo.Context) (map[string]interface{}, error) {
@@ -233,7 +251,8 @@ func validateConfig(c echo.Context, client *github.Client) (Config, error) {
 		return Config{}, err
 	}
 
-	config.Name, err = validateName(c)
+	config.Owner = c.FormValue("owner")
+	config.Repo, err = validateRepo(c)
 	if err != nil {
 		return Config{}, err
 	}
@@ -243,12 +262,12 @@ func validateConfig(c echo.Context, client *github.Client) (Config, error) {
 		return Config{}, err
 	}
 
-	err = verifyExists(c, config.Name, config.Version)
+	err = verifyExists(c, config.Version)
 	if err != nil {
 		return Config{}, err
 	}
 
-	config.Description, err = validateDescription(c, config.Name, client)
+	config.Description, err = validateDescription(c, client)
 	if err != nil {
 		return Config{}, err
 	}
@@ -263,7 +282,7 @@ func validateConfig(c echo.Context, client *github.Client) (Config, error) {
 		return Config{}, err
 	}
 
-	config.CommitSha, err = validateCommitSha(c, config.Name, config.Version, client)
+	config.CommitSha, err = validateCommitSha(c, config.Version, client)
 	if err != nil {
 		return Config{}, err
 	}
@@ -273,6 +292,7 @@ func validateConfig(c echo.Context, client *github.Client) (Config, error) {
 	config.BuildDependencies = getDepsFromConfigYaml(configYaml, "build_dependencies")
 	config.Build = getBuildFromConfigYaml(configYaml)
 	config.Test = getTestFromConfigYaml(configYaml)
+	config.Readme = getReadme(c, urlfetch.Client(appengine.NewContext(c.Request())))
 
 	return config, nil
 }
