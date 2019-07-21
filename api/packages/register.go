@@ -147,7 +147,8 @@ func validateDescription(c echo.Context, name string, client *github.Client) (st
 }
 
 func verifyExists(c echo.Context, name string, version string) error {
-	isExists, err := handleExists(c, name, version)
+	ownerAndName := strings.Split(name, "/")
+	isExists, err := handleExists(c, ownerAndName[0], ownerAndName[1], version)
 	if err == nil {
 		return err
 	}

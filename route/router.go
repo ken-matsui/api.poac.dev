@@ -14,9 +14,9 @@ func Init() *echo.Echo {
 	middleware.Set(e)
 	packagesRoute := e.Group("/packages")
 	{
-		packagesRoute.GET("/deps/:owner/:name/:version", packages.Deps())
-		packagesRoute.GET("/exists/:owner/:name/:version", packages.Exists())
-		packagesRoute.GET("/versions/:owner/:name", packages.Versions())
+		packagesRoute.GET("/deps/:owner/:repo/:version", packages.Deps())
+		packagesRoute.GET("/exists/:owner/:repo/:version", packages.Exists())
+		packagesRoute.GET("/versions/:owner/:repo", packages.Versions())
 		packagesRoute.POST("/register", packages.Register())
 	}
 	e.GET("/flush-memcache", api.FlushMemcache())

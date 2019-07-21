@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func getExists(ctx context.Context, app *firebase.App, name string, version string) (bool, error) {
+func getExists(ctx context.Context, app *firebase.App, owner, repo, version string) (bool, error) {
 	client, err := app.Firestore(ctx)
 	if err != nil {
 		return false, err
@@ -17,7 +17,9 @@ func getExists(ctx context.Context, app *firebase.App, name string, version stri
 	defer client.Close()
 
 	collection := client.Collection("packages")
-	query := collection.Where("name", "==", name).Where("version", "==", version)
+	query := collection.Where("owner", "==", owner).
+		                Where("repo", "==", repo).
+		                Where("version", "==", version)
 	iter := query.Documents(ctx)
 	_, err = iter.Next()
 	if err != nil {
@@ -26,14 +28,14 @@ func getExists(ctx context.Context, app *firebase.App, name string, version stri
 	return true, nil
 }
 
-func handleExists(c echo.Context, name string, version string) (bool, error) {
+func handleExists(c echo.Context, owner, repo, version string) (bool, error) {
 	// Create new firebase app
 	ctx, app, err := misc.NewFirebaseApp(c.Request())
 	if err != nil {
 		return false, err
 	}
 
-	isExists, err := getExists(ctx, app, name, version)
+	isExists, err := getExists(ctx, app, owner, repo, version)
 	if err != nil {
 		return false, err
 	}
@@ -42,9 +44,7 @@ func handleExists(c echo.Context, name string, version string) (bool, error) {
 
 func Exists() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		name := c.Param("owner") + "/" + c.Param("name")
-		version := c.Param("version")
-		isExists, err := handleExists(c, name, version)
+		isExists, err := handleExists(c, c.Param("owner"), c.Param("repo"), c.Param("version"))
 		if err != nil {
 			return err
 		}

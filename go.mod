@@ -14,8 +14,8 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/swaggo/echo-swagger v0.0.0-20190329130007-1219b460a043
 	github.com/swaggo/swag v1.6.2
-	go.opencensus.io v0.21.0
-	golang.org/x/net v0.0.0-20190607181551-461777fb6f67
-	google.golang.org/api v0.5.0
+	go.opencensus.io v0.22.0
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	google.golang.org/api v0.7.0
 	google.golang.org/appengine v1.6.1
 )
