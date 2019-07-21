@@ -94,7 +94,12 @@ func getBuildFromConfigYaml(configYaml map[string]interface{}) map[string]interf
 
 func getDepsFromConfigYaml(configYaml map[string]interface{}, key string) map[string]string {
 	if value, ok := configYaml[key]; ok {
-		return value.(map[string]string)
+		mapString := make(map[string]string)
+		for key, value := range value.(map[string]interface{}) {
+			strValue := fmt.Sprintf("%v", value)
+			mapString[key] = strValue
+		}
+		return mapString
 	}
 	return nil
 }
