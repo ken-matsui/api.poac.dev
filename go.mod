@@ -7,7 +7,7 @@ require (
 	firebase.google.com/go v3.8.1+incompatible
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/didip/tollbooth v4.0.0+incompatible
+	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-github/v27 v27.0.0
 	github.com/labstack/echo/v4 v4.1.6
