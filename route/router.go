@@ -19,7 +19,6 @@ func Init() *echo.Echo {
 		packagesRoute.GET("/versions/:owner/:repo", packages.Versions())
 		packagesRoute.POST("/register", packages.Register())
 	}
-	e.GET("/flush-memcache", api.FlushMemcache())
 	e.GET("/firestore-export", api.FirestoreExport())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	return e
