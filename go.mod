@@ -3,7 +3,7 @@ module github.com/poacpm/api.poac.pm
 go 1.12
 
 require (
-	cloud.google.com/go v0.44.3
+	cloud.google.com/go v0.47.0
 	firebase.google.com/go v3.10.0+incompatible
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/blang/semver v3.5.1+incompatible
