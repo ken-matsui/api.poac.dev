@@ -1,13 +1,10 @@
 name: Go
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
-    name: Build
-    
     runs-on: ubuntu-latest
-    
     steps:
     - name: Set up Go 1.12
       uses: actions/setup-go@v1
@@ -17,9 +14,27 @@ jobs:
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
+    
+    - uses: actions/cache@v1
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
 
     - run: go vet -v
     - run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
     - run: bash <(curl -s https://codecov.io/bash)
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Slack Notification
+      uses: homoluctus/slatify@master
+      if: always()
+      with:
+        type: ${{ job.status }}
+        job_name: '*${{ github.workflow }} build*'
+        url: ${{ secrets.SLACK_WEBHOOK }}
+        username: 'GitHub Action (${{ github.workflow }})'
+        commit: true
+        token: ${{ secrets.GITHUB_TOKEN }}
