@@ -27,3 +27,14 @@ jobs:
     - run: bash <(curl -s https://codecov.io/bash)
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Slack Notification
+      uses: homoluctus/slatify@master
+      if: always()
+      with:
+        type: ${{ job.status }}
+        job_name: '*${{ github.workflow }} build*'
+        url: ${{ secrets.SLACK_WEBHOOK }}
+        username: 'GitHub Action (${{ github.workflow }})'
+        commit: true
+        token: ${{ secrets.GITHUB_TOKEN }}
