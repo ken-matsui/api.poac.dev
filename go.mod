@@ -4,7 +4,8 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.56.0
-	firebase.google.com/go v3.12.0+incompatible
+	cloud.google.com/go/firestore v1.2.0 // indirect
+	firebase.google.com/go v3.12.1+incompatible
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/didip/tollbooth v4.0.2+incompatible
