@@ -14,7 +14,7 @@ require (
 	github.com/labstack/echo/v4 v4.1.16
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/swaggo/echo-swagger v0.0.0-20190329130007-1219b460a043
-	github.com/swaggo/swag v1.6.5
+	github.com/swaggo/swag v1.6.7
 	go.opencensus.io v0.22.3
 	golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
