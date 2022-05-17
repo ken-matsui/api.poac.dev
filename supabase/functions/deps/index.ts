@@ -2,7 +2,7 @@
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
 
-// Search packages by given query
+// Get `dependencies` from given name and version
 
 import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
 import { supabaseClient } from "../_shared/supabaseClient.ts";
@@ -21,17 +21,15 @@ serve(async (req) => {
       req.headers.get("Authorization")!.replace("Bearer ", ""),
     );
 
-    const { query, perPage } = await req.json();
-    let request = supabaseClient
+    const { name, version } = await req.json();
+    const { data, error } = await supabaseClient
       .from("packages")
-      .select("*")
-      .like("name", `%${query}%`);
+      .select("metadata->dependencies")
+      .eq("name", name)
+      .eq("version", version)
+      .limit(1)
+      .single();
 
-    if (perPage !== 0) {
-      request = request.range(0, parseInt(perPage));
-    }
-
-    const { data, error } = await request;
     console.log({ data, error });
 
     return new Response(JSON.stringify({ data, error }), {
@@ -48,6 +46,6 @@ serve(async (req) => {
 
 // To invoke:
 // curl -i --location --request POST 'http://localhost:54321/functions/v1/' \
-//   --header 'Authorization: Bearer $ANON_KEY' \
+//   --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24ifQ.625_WdcF3KHqz5amU0x2X5WWHP-OEs_4qj0ssLNHzTs' \
 //   --header 'Content-Type: application/json' \
 //   --data '{"name":"Functions"}'
