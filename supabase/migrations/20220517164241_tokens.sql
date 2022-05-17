@@ -6,7 +6,7 @@ create table public.tokens (
     last_used_at timestampz,
     token text not null unique, -- TODO: varchar(?)
     owner_id uuid not null references auth.users(id) default auth.uid(),
-    name text not null, -- TODO: varchar(?)
+    name text not null -- TODO: varchar(?)
 );
 
 -- Create RLS policies
