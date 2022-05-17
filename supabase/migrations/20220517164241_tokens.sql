@@ -22,13 +22,13 @@ create policy "Allow INSERT up to 5 tokens"
             where (auth.uid() = owner_id)) <= 5
     );
 
-create policy "Allow SELECT for owners"
+create policy "Allow SELECT to owners"
     on public.tokens
     for select using (
         auth.uid() = owner_id
     );
 
-create policy "Allow DELETE for owners"
+create policy "Allow DELETE to owners"
     on public.tokens
     for delete using (
         auth.uid() = owner_id
