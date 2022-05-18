@@ -20,7 +20,7 @@ create table public.packages (
 alter table public.packages
     enable row level security;
 
-create policy "Allow SELECT to all users"
+create policy "Allow all users to SELECT"
     on public.packages
     for select using (
         true

@@ -12,13 +12,13 @@ create table public.users (
 alter table public.users
     enable row level security;
 
-create policy "Allow SELECT to all users"
+create policy "Allow all users to SELECT themselves"
     on public.users
     for select using (
         true
     );
 
-create policy "Allow UPDATE to users themselves"
+create policy "Allow users to UPDATE themselves"
 	on public.users
 	for update using (
         auth.uid() = id

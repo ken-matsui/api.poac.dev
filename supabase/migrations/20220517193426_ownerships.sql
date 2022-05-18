@@ -14,7 +14,7 @@ create table public.ownerships (
 alter table public.ownerships
     enable row level security;
 
-create policy "Allow INSERT by existing owners"
+create policy "Allow existing owners to INSERT"
     on public.ownerships
     for insert with check (
         auth.uid() in (
@@ -24,13 +24,13 @@ create policy "Allow INSERT by existing owners"
         )
     );
 
-create policy "Allow SELECT to all users"
+create policy "Allow all users to SELECT ownerships"
     on public.ownerships
     for select using (
         true
     );
 
-create policy "Allow UPDATE to owners themselves"
+create policy "Allow owners to UPDATE themselves"
     on public.ownerships
     for update using (
         auth.uid() = user_id
