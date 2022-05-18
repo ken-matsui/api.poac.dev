@@ -9,7 +9,8 @@ returns table (
     authors text[],
     repository text,
     description text,
-    license text
+    license text,
+    readme text
 )
 language sql
 as $$
@@ -24,7 +25,8 @@ as $$
         p.authors,
         p.repository,
         p.description,
-        p.license
+        p.license,
+        p.readme
     from packages p
     left join ownerships o on o.package_name = p.name
     left join users u on u.id = o.user_id

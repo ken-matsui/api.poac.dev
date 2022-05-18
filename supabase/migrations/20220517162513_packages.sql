@@ -11,6 +11,7 @@ create table public.packages (
     repository text not null, -- TODO: varchar(?)
     description text not null, -- TODO: varchar(?)
     license text not null, -- TODO: varchar(?)
+    readme text, -- has markdown
 
     unique (name, version)
 );
@@ -40,7 +41,8 @@ returns table (
     authors text[],
     repository text,
     description text,
-    license text
+    license text,
+    readme text
 )
 language sql
 as $$
@@ -60,7 +62,8 @@ returns table (
     authors text[],
     repository text,
     description text,
-    license text
+    license text,
+    readme text
 )
 language sql
 as $$
@@ -69,7 +72,7 @@ as $$
 $$;
 
 -- Get dependents of given package name
-create get_dependents(depname text)
+create function get_dependents(depname text)
 returns table (
     id uuid,
     published_at timestamp,
@@ -80,7 +83,8 @@ returns table (
     authors text[],
     repository text,
     description text,
-    license text
+    license text,
+    readme text
 )
 language sql
 as $$
