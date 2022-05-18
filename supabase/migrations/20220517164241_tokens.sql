@@ -53,7 +53,7 @@ end
 $$;
 
 -- Get if token exists
-create function exist_token(token_ text)
+create function exist_token(api_token text)
 returns boolean
 language plpgsql
 as $$
@@ -61,7 +61,7 @@ begin
     return exists (
         select 1
         from public.tokens
-        where token = crypt(token_, token)
+        where token = crypt(api_token, token)
     );
 end
 $$;
