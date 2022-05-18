@@ -39,8 +39,8 @@ create policy "Allow DELETE to owners"
 -- Create a new token
 -- \return {f1: uuid, f2: timestamp}
 create function create_token(name text, token text)
-language plpgsql
 returns record
+language plpgsql
 as $$
 declare
     id_v uuid = uuid_generate_v4();
@@ -49,5 +49,19 @@ begin
     insert into public.tokens (id, created_at, name, token)
     values (id_v, created_at_v, name, crypt(token, gen_salt('bf')));
     return (id_v, created_at_v);
+end
+$$;
+
+-- Get if token exists
+create function exist_token(token_ text)
+returns boolean
+language plpgsql
+as $$
+begin
+    return exists (
+        select 1
+        from public.tokens
+        where token = crypt(token_, token)
+    );
 end
 $$;

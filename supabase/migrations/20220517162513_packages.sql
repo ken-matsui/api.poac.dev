@@ -30,7 +30,6 @@ create policy "Allow SELECT to all users"
 
 -- Get packages ordered by version (newer first)
 create function get_packages()
-language sql
 returns table (
     id uuid,
     published_at timestamp,
@@ -43,6 +42,7 @@ returns table (
     description text,
     license text
 )
+language sql
 as $$
     select * from packages
     order by name, string_to_array(version, '.')::int[] desc;
@@ -50,7 +50,6 @@ $$;
 
 -- Get packages with latest version
 create function get_uniq_packages()
-language sql
 returns table (
     id uuid,
     published_at timestamp,
@@ -63,6 +62,7 @@ returns table (
     description text,
     license text
 )
+language sql
 as $$
     select distinct on (name) * from packages
     order by name, string_to_array(version, '.')::int[] desc;
@@ -70,7 +70,6 @@ $$;
 
 -- Get dependents of given package name
 create get_dependents(depname text)
-language sql
 returns table (
     id uuid,
     published_at timestamp,
@@ -83,6 +82,7 @@ returns table (
     description text,
     license text
 )
+language sql
 as $$
     select * from packages
     where metadata->'dependencies' ? depname = true;
