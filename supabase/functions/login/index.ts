@@ -17,7 +17,7 @@ serve(async (req) => {
   try {
     const { api_token } = await req.json();
     const { data, error } = await supabaseAdmin
-      .rpc<boolean>("exist_token", {api_token})
+      .rpc<boolean>("exist_token", { api_token })
       .single();
 
     console.log({ data, error });
