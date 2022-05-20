@@ -24,17 +24,16 @@ serve(async (req) => {
     const { name, version } = await req.json();
     const { data, error } = await supabaseClient
       .from("packages")
-      .select("repository")
+      .select("repository, sha256sum")
       .eq("name", name)
       .eq("version", version)
       .limit(1)
       .single();
 
-    const repository = data ? data["repository"] : "";
-    console.log({ data: repository, error });
+    console.log({ data, error });
 
     return new Response(
-      JSON.stringify({ data: repository, error }),
+      JSON.stringify({ data, error }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
