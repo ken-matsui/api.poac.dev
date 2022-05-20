@@ -10,7 +10,8 @@ returns table (
     repository text,
     description text,
     license text,
-    readme text
+    readme text,
+    sha256sum varchar(64)
 )
 language sql
 as $$
@@ -26,7 +27,8 @@ as $$
         p.repository,
         p.description,
         p.license,
-        p.readme
+        p.readme,
+        p.sha256sum
     from packages p
     left join ownerships o on o.package_name = p.name
     left join users u on u.id = o.user_id

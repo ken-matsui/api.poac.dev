@@ -12,6 +12,7 @@ create table public.packages (
     description text not null, -- TODO: varchar(?)
     license text not null, -- TODO: varchar(?)
     readme text, -- has markdown
+    sha256sum varchar(64) not null,
 
     unique (name, version)
 );
@@ -42,7 +43,8 @@ returns table (
     repository text,
     description text,
     license text,
-    readme text
+    readme text,
+    sha256sum varchar(64)
 )
 language sql
 as $$
@@ -63,7 +65,8 @@ returns table (
     repository text,
     description text,
     license text,
-    readme text
+    readme text,
+    sha256sum varchar(64)
 )
 language sql
 as $$
@@ -84,7 +87,8 @@ returns table (
     repository text,
     description text,
     license text,
-    readme text
+    readme text,
+    sha256sum varchar(64)
 )
 language sql
 as $$
