@@ -1,0 +1,5 @@
+[package]
+name = "poac-api"
+version = "0.1.0"
+edition = 2020
+authors = ["Ken Matsui <26405363+ken-matsui@users.noreply.github.com>"]
