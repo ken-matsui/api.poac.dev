@@ -25,19 +25,9 @@ v1::versions::asyncHandleHttpRequest(
     for (const drogon::orm::Row& row : result) {
       versions.append(row["version"].as<std::string>());
     }
-    Json::Value res(Json::objectValue);
-    res["data"] = versions;
-
-    const drogon::HttpResponsePtr resp =
-        drogon::HttpResponse::newHttpJsonResponse(res);
-    resp->setStatusCode(drogon::k200OK);
-    resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
-    callback(resp);
-
-    return;
+    callback(poac_api::ok(versions));
   } catch (const drogon::orm::DrogonDbException& e) {
     LOG_ERROR << e.base().what();
     callback(poac_api::internalError());
-    return;
   }
 }

@@ -5,6 +5,7 @@
 #include <vector>
 
 // internal
+#include <constants.hpp>
 #include "models/Packages.h"
 #include <utils.hpp>
 
@@ -28,12 +29,5 @@ v1::search::asyncHandleHttpRequest(
   for (const Packages& row : packages) {
     packages_j.append(row.toJson());
   }
-  Json::Value res(Json::objectValue);
-  res["data"] = packages_j;
-
-  const drogon::HttpResponsePtr resp =
-      drogon::HttpResponse::newHttpJsonResponse(res);
-  resp->setStatusCode(drogon::k200OK);
-  resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
-  callback(resp);
+  callback(poac_api::ok(packages_j));
 }
