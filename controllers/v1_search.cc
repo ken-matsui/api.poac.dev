@@ -5,8 +5,9 @@
 #include <vector>
 
 // internal
-#include <constants.hpp>
 #include "models/Packages.h"
+
+#include <constants.hpp>
 #include <utils.hpp>
 
 // external
