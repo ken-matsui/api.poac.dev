@@ -8,6 +8,7 @@ include(cmake/Deps.cmake)
 
 add_executable(${PROJECT_NAME} src/main.cc)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+target_include_directories(${PROJECT_NAME} PRIVATE include)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${POAC_API_DEPENDENCIES})
 
 aux_source_directory(controllers CTL_SRC)

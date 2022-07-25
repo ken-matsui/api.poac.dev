@@ -15,6 +15,7 @@ jobs:
           - "src"
           - "tests"
           - "controllers"
+          - "filters"
     steps:
       - uses: actions/checkout@v3
 

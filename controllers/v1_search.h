@@ -12,7 +12,7 @@ public:
   ) override;
   PATH_LIST_BEGIN
 
-  PATH_ADD("/v1/search", drogon::Post);
+  PATH_ADD("/v1/search", drogon::Post, "JsonReq", "HasStrQuery");
 
   PATH_LIST_END
 };
