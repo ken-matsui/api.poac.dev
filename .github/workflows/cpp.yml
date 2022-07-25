@@ -13,7 +13,7 @@ jobs:
       matrix:
         path:
           - "src"
-          - "test"
+          - "tests"
     steps:
       - uses: actions/checkout@v3
 
