@@ -14,6 +14,7 @@ jobs:
         path:
           - "src"
           - "tests"
+          - "controllers"
     steps:
       - uses: actions/checkout@v3
 
