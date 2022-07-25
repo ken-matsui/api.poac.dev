@@ -2,7 +2,7 @@
 
 create table public.packages (
     id uuid primary key default uuid_generate_v4(),
-    published_at timestampz not null default now(),
+    published_at timestamptz not null default now(),
     metadata jsonb not null unique,
     name text not null, -- TODO: varchar(?)
     version text not null, -- TODO: varchar(?)
