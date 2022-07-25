@@ -7,12 +7,14 @@
 #pragma once
 
 #include <drogon/HttpFilter.h>
+
 using namespace drogon;
 
 class HasStrQuery : public HttpFilter<HasStrQuery> {
 public:
   HasStrQuery() {}
-  virtual void
+
+  void
   doFilter(
       const HttpRequestPtr& req, FilterCallback&& fcb,
       FilterChainCallback&& fccb

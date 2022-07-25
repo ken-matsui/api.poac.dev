@@ -4,9 +4,9 @@
 #include <string>
 
 // internal
-#include "constants.hpp"
+#include <constants.hpp>
 #include "models/Packages.h"
-#include "utils.hpp"
+#include <utils.hpp>
 
 using drogon_model::postgres::Packages;
 

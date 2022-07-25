@@ -6,7 +6,7 @@
 
 // internal
 #include "models/Packages.h"
-#include "utils.hpp"
+#include <utils.hpp>
 
 // external
 #include <drogon/orm/Mapper.h> // NOLINT(build/include_order)

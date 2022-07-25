@@ -4,8 +4,8 @@
 #include <string>
 
 // external
-#include <drogon/HttpResponse.h>
-#include <json/json.h>
+#include <drogon/HttpResponse.h> // NOLINT(build/include_order)
+#include <json/json.h> // NOLINT(build/include_order)
 
 namespace poac_api {
 

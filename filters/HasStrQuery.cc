@@ -1,7 +1,7 @@
 #include "HasStrQuery.h"
 
 // internal
-#include "constants.hpp"
+#include <constants.hpp>
 
 using namespace drogon;
 
