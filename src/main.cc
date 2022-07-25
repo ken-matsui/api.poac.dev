@@ -1,7 +1,10 @@
+// std
 #include <cstdlib>
-#include <dotenv.h>
-#include <drogon/drogon.h>
 #include <string>
+
+// external
+#include <dotenv.h> // NOLINT(build/include_order)
+#include <drogon/drogon.h> // NOLINT(build/include_order)
 
 std::string
 getDbHost() {
