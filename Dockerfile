@@ -10,4 +10,5 @@ FROM drogonframework/drogon
 #    openssl \
 #    libssl-dev \
 #    zlib1g-dev \
+#    postgresql-all \
 #    && rm -rf /var/lib/apt/lists/*
