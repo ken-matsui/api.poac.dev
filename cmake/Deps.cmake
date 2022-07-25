@@ -5,6 +5,7 @@ list(APPEND CMAKE_MESSAGE_INDENT "  ")
 unset(missingDependencies)
 
 include(cmake/AddDrogon.cmake)
+include(cmake/AddDotenv.cmake)
 
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 if (missingDependencies)
