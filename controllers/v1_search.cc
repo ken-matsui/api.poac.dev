@@ -2,12 +2,13 @@
 
 // std
 #include <string>
+#include <vector>
 
 // internal
 #include "models/Packages.h"
 
 // external
-#include <drogon/orm/Mapper.h>
+#include <drogon/orm/Mapper.h> // NOLINT(build/include_order)
 
 using drogon_model::postgres::Packages;
 
