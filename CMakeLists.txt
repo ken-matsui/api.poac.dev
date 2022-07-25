@@ -4,20 +4,11 @@ project(poac_api CXX)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(cmake/Deps.cmake)
+
 add_executable(${PROJECT_NAME} src/main.cc)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
-
-# ##############################################################################
-# If you include the drogon source code locally in your project, use this method
-# to add drogon 
-# add_subdirectory(drogon) 
-# target_link_libraries(${PROJECT_NAME} PRIVATE drogon)
-#
-# and comment out the following lines
-find_package(Drogon CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon)
-
-# ##############################################################################
+target_link_libraries(${PROJECT_NAME} PRIVATE ${POAC_API_DEPENDENCIES})
 
 aux_source_directory(controllers CTL_SRC)
 aux_source_directory(filters FILTER_SRC)
