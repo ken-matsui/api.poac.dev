@@ -61,7 +61,7 @@ jobs:
     - name: Run CMake
       run: cmake -B build -G Ninja
 
-    - name: Build Poac
+    - name: Build poac-api
       run: ninja
       working-directory: build
 
