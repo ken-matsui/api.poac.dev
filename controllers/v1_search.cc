@@ -20,8 +20,7 @@ v1::search::asyncHandleHttpRequest(
   const auto request = req->getJsonObject();
   if (request) {
     if (const Json::Value query = request->get("query", ""); query.isString()) {
-      const drogon::orm::DbClientPtr clientPtr = drogon::app().getDbClient();
-      drogon::orm::Mapper<Packages> mp(clientPtr);
+      drogon::orm::Mapper<Packages> mp(drogon::app().getDbClient());
       const std::vector<Packages> packages = mp.findBy(drogon::orm::Criteria(
           Packages::Cols::_name, drogon::orm::CompareOperator::Like,
           "%" + query.asString() + "%"
@@ -31,9 +30,11 @@ v1::search::asyncHandleHttpRequest(
       for (const Packages& row : packages) {
         packages_j.append(row.toJson());
       }
+      Json::Value res(Json::objectValue);
+      res["data"] = packages_j;
 
       const drogon::HttpResponsePtr resp =
-          drogon::HttpResponse::newHttpJsonResponse(packages_j);
+          drogon::HttpResponse::newHttpJsonResponse(res);
       resp->setStatusCode(drogon::k200OK);
       resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
       callback(resp);
@@ -44,7 +45,7 @@ v1::search::asyncHandleHttpRequest(
 
   const drogon::HttpResponsePtr resp =
       drogon::HttpResponse::newHttpJsonResponse(Json::Value());
-  resp->setStatusCode(drogon::k200OK);
+  resp->setStatusCode(drogon::k400BadRequest);
   resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
   callback(resp);
 }
