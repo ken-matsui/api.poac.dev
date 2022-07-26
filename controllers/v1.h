@@ -8,8 +8,9 @@ class v1 : public drogon::HttpController<v1> {
 public:
   METHOD_LIST_BEGIN
 
-  METHOD_ADD(v1::search, "/search", Post, "JsonReq", "HasStrQuery");
-  METHOD_ADD(v1::versions, "/versions", Post, "JsonReq", "HasStrQuery");
+  METHOD_ADD(v1::search, "/search", Post, "JsonReq");
+  METHOD_ADD(v1::versions, "/versions", Post, "JsonReq");
+  METHOD_ADD(v1::repoinfo, "/repoinfo", Post, "JsonReq");
 
   METHOD_LIST_END
 
@@ -20,6 +21,11 @@ public:
   );
   static void
   versions(
+      const HttpRequestPtr& req,
+      std::function<void(const HttpResponsePtr&)>&& callback
+  );
+  static void
+  repoinfo(
       const HttpRequestPtr& req,
       std::function<void(const HttpResponsePtr&)>&& callback
   );
