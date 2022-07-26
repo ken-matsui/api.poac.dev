@@ -20,8 +20,7 @@ WORKDIR /builder
 COPY . .
 
 RUN cmake -B build -DCMAKE_BUILD_TYPE=Release \
- && cd build \
- && make -j $(nproc)
+ && cmake --build build
 
 WORKDIR /app
 RUN cp /builder/build/poac_api /app \
