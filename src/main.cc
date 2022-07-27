@@ -6,47 +6,17 @@
 #include <dotenv.h> // NOLINT(build/include_order)
 #include <drogon/drogon.h> // NOLINT(build/include_order)
 
-std::string
-getDbHost() {
-  if (const char* env_p = std::getenv("POAC_API_DB_HOST")) {
-    LOG_DEBUG << "POAC_API_DB_HOST: " << env_p;
+inline std::string
+getEnv(const std::string& name) {
+  if (const char* env_p = std::getenv(name.c_str())) {
+    LOG_DEBUG << name << ": " << env_p;
     return {env_p};
   }
-  LOG_ERROR << "POAC_API_DB_HOST should be exported";
+  LOG_ERROR << name << " should be exported";
   std::exit(EXIT_FAILURE);
 }
 
-std::uint16_t
-getDbPort() {
-  if (const char* env_p = std::getenv("POAC_API_DB_PORT")) {
-    LOG_DEBUG << "POAC_API_DB_PORT: " << env_p;
-    return std::stoi(env_p);
-  }
-  LOG_ERROR << "POAC_API_DB_PORT should be exported";
-  std::exit(EXIT_FAILURE);
-}
-
-std::string
-getDbDatabaseName() {
-  if (const char* env_p = std::getenv("POAC_API_DB_DATABASE_NAME")) {
-    LOG_DEBUG << "POAC_API_DB_DATABASE_NAME: " << env_p;
-    return {env_p};
-  }
-  LOG_ERROR << "POAC_API_DB_DATABASE_NAME should be exported";
-  std::exit(EXIT_FAILURE);
-}
-
-std::string
-getDbUserName() {
-  if (const char* env_p = std::getenv("POAC_API_DB_USER_NAME")) {
-    LOG_DEBUG << "POAC_API_DB_USER_NAME: " << env_p;
-    return {env_p};
-  }
-  LOG_ERROR << "POAC_API_DB_USER_NAME should be exported";
-  std::exit(EXIT_FAILURE);
-}
-
-std::string
+inline std::string
 getDbPassword() {
   return dotenv::getenv("POAC_API_DB_PASSWORD", "");
 }
@@ -61,8 +31,9 @@ main() {
 
   // Connect to database
   drogon::app().createDbClient(
-      "postgresql", getDbHost(), getDbPort(), getDbDatabaseName(),
-      getDbUserName(), getDbPassword()
+      "postgresql", getEnv("POAC_API_DB_HOST"),
+      std::stoi(getEnv("POAC_API_DB_PORT")), getEnv("POAC_API_DB_DATABASE"),
+      getEnv("POAC_API_DB_USER"), getDbPassword()
   );
 
   // Load config file
