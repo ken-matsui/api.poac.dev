@@ -13,6 +13,7 @@ jobs:
       matrix:
         path:
           - "src"
+          - "include"
           - "tests"
           - "controllers"
           - "filters"

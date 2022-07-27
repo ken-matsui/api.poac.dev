@@ -37,14 +37,13 @@ internalError() {
 
 inline drogon::HttpResponsePtr
 ok(const Json::Value& value) {
-    Json::Value res(Json::objectValue);
-    res["data"] = value;
+  Json::Value res(Json::objectValue);
+  res["data"] = value;
 
-    drogon::HttpResponsePtr resp =
-            drogon::HttpResponse::newHttpJsonResponse(res);
-    resp->setStatusCode(drogon::k200OK);
-    resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
-    return resp;
+  drogon::HttpResponsePtr resp = drogon::HttpResponse::newHttpJsonResponse(res);
+  resp->setStatusCode(drogon::k200OK);
+  resp->setContentTypeCode(drogon::CT_APPLICATION_JSON);
+  return resp;
 }
 
 } // namespace poac_api
