@@ -15,6 +15,73 @@
 using drogon_model::postgres::Package;
 
 void
+v1::deps(
+    const HttpRequestPtr& req,
+    std::function<void(const HttpResponsePtr&)>&& callback
+) {
+  const auto request = req->getJsonObject();
+
+  // Validations
+  const Json::Value name = request->get("name", "");
+  const Json::Value version = request->get("version", "");
+  if (!(name.isString() && version.isString())) {
+    callback(poac_api::badRequest("`name` & `version` must be string"));
+    return;
+  }
+
+  // SQL query
+  const drogon::orm::DbClientPtr clientPtr = drogon::app().getDbClient();
+  try {
+    const auto result = clientPtr->execSqlSync(
+        "select metadata->'dependencies' as dependencies from package where name = $1 and version = $2 limit 1",
+        name.asString(), version.asString()
+    );
+
+    // Response build
+    Json::Value package(Json::objectValue);
+    package["dependencies"] = result[0]["dependencies"].as<Json::Value>();
+    callback(poac_api::ok(package));
+  } catch (const drogon::orm::DrogonDbException& e) {
+    LOG_ERROR << e.base().what();
+    callback(poac_api::internalError());
+  }
+}
+
+void
+v1::repoinfo(
+    const HttpRequestPtr& req,
+    std::function<void(const HttpResponsePtr&)>&& callback
+) {
+  const auto request = req->getJsonObject();
+
+  // Validations
+  const Json::Value name = request->get("name", "");
+  const Json::Value version = request->get("version", "");
+  if (!(name.isString() && version.isString())) {
+    callback(poac_api::badRequest("`name` & `version` must be string"));
+    return;
+  }
+
+  // SQL query
+  const drogon::orm::DbClientPtr clientPtr = drogon::app().getDbClient();
+  try {
+    const auto result = clientPtr->execSqlSync(
+        "select repository, sha256sum from package where name = $1 and version = $2 limit 1",
+        name.asString(), version.asString()
+    );
+
+    // Response build
+    Json::Value package(Json::objectValue);
+    package["repository"] = result[0]["repository"].as<std::string>();
+    package["sha256sum"] = result[0]["sha256sum"].as<std::string>();
+    callback(poac_api::ok(package));
+  } catch (const drogon::orm::DrogonDbException& e) {
+    LOG_ERROR << e.base().what();
+    callback(poac_api::internalError());
+  }
+}
+
+void
 v1::search(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback
@@ -28,8 +95,8 @@ v1::search(
     return;
   }
   const Json::Value perPage = request->get("perPage", 0);
-  if (!perPage.isUInt()) {
-    callback(poac_api::badRequest("`perPage` must be unsigned int"));
+  if (!perPage.isUInt64()) {
+    callback(poac_api::badRequest("`perPage` must be uint64"));
     return;
   }
 
@@ -85,44 +152,6 @@ v1::versions(
       versions.append(row["version"].as<std::string>());
     }
     callback(poac_api::ok(versions));
-  } catch (const drogon::orm::DrogonDbException& e) {
-    LOG_ERROR << e.base().what();
-    callback(poac_api::internalError());
-  }
-}
-
-void
-v1::repoinfo(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback
-) {
-  const auto request = req->getJsonObject();
-
-  // Validations
-  const Json::Value name = request->get("name", "");
-  const Json::Value version = request->get("version", "");
-  if (!(name.isString() && version.isString())) {
-    callback(poac_api::badRequest("`name` & `version` must be string"));
-    return;
-  }
-
-  // SQL query
-  const drogon::orm::DbClientPtr clientPtr = drogon::app().getDbClient();
-  try {
-    const auto result = clientPtr->execSqlSync(
-        "select repository, sha256sum from package where name = $1 and version = $2 limit 1",
-        name.asString(), version.asString()
-    );
-
-    // Response build
-    Json::Value packages(Json::arrayValue);
-    for (const drogon::orm::Row& row : result) {
-      Json::Value package(Json::objectValue);
-      package["repository"] = row["repository"].as<std::string>();
-      package["sha256sum"] = row["sha256sum"].as<std::string>();
-      packages.append(package);
-    }
-    callback(poac_api::ok(packages));
   } catch (const drogon::orm::DrogonDbException& e) {
     LOG_ERROR << e.base().what();
     callback(poac_api::internalError());
