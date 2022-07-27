@@ -5,14 +5,14 @@
 #include <vector>
 
 // internal
-#include "models/Packages.h"
+#include "models/Package.h"
 
 #include <constants.hpp>
 
 // external
 #include <drogon/orm/Mapper.h> // NOLINT(build/include_order)
 
-using drogon_model::postgres::Packages;
+using drogon_model::postgres::Package;
 
 // TODO(ken-matsui): Support `perPage`
 void
@@ -22,14 +22,14 @@ v1::search(
 ) {
   const auto request = req->getJsonObject();
   if (const Json::Value query = request->get("query", ""); query.isString()) {
-    drogon::orm::Mapper<Packages> mp(drogon::app().getDbClient());
-    const std::vector<Packages> result = mp.findBy(drogon::orm::Criteria(
-        Packages::Cols::_name, drogon::orm::CompareOperator::Like,
+    drogon::orm::Mapper<Package> mp(drogon::app().getDbClient());
+    const std::vector<Package> result = mp.findBy(drogon::orm::Criteria(
+        Package::Cols::_name, drogon::orm::CompareOperator::Like,
         "%" + query.asString() + "%"
     ));
 
     Json::Value packages(Json::arrayValue);
-    for (const Packages& row : result) {
+    for (const Package& row : result) {
       packages.append(row.toJson());
     }
     callback(poac_api::ok(packages));
@@ -49,7 +49,7 @@ v1::versions(
 
     try {
       const auto result = clientPtr->execSqlSync(
-          "select version from packages where name = $1", name.asString()
+          "select version from package where name = $1", name.asString()
       );
 
       Json::Value versions(Json::arrayValue);
@@ -80,7 +80,7 @@ v1::repoinfo(
 
     try {
       const auto result = clientPtr->execSqlSync(
-          "select repository, sha256sum from packages where name = $1 and version = $2 limit 1",
+          "select repository, sha256sum from package where name = $1 and version = $2 limit 1",
           name.asString(), version.asString()
       );
 
