@@ -16,6 +16,7 @@
 
 #include <drogon/orm/DbClient.h>
 #include <drogon/utils/optional.h>
+#include <drogon/utils/string_view.h>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -25,12 +26,25 @@ namespace drogon::orm {
 
 template <typename T, bool SelectAll, bool Single = false>
 class FilterBuilder {
-public:
   std::string from_;
   std::string columns_;
   std::vector<std::string> filters_;
   optional<std::uint64_t> limit_;
-  optional<std::uint64_t> offset_; // TODO: private
+  optional<std::uint64_t> offset_;
+
+public:
+  friend class FilterBuilder<T, SelectAll, !Single>;
+
+  FilterBuilder(string_view from, string_view columns)
+      : from_(from), columns_(columns) {}
+  FilterBuilder<T, SelectAll, true>(const FilterBuilder<T, SelectAll, false>& fb
+  ) {
+    from_ = fb.from_;
+    columns_ = fb.columns_;
+    filters_ = fb.filters_;
+    limit_ = fb.limit_;
+    offset_ = fb.offset_;
+  }
 
   inline FilterBuilder&
   eq(const std::string& column, const std::string& value) {
@@ -101,7 +115,7 @@ public:
    */
   inline FilterBuilder<T, SelectAll, true>
   single() {
-    return {from_, columns_, filters_, limit_, offset_};
+    return *this;
   }
 
   inline std::conditional_t<
