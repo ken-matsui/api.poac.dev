@@ -32,6 +32,11 @@ class FilterBuilder {
   optional<std::uint64_t> limit_;
   optional<std::uint64_t> offset_;
 
+  /**
+   * @brief Generate SQL query in string.
+   *
+   * @return std::string The string generated SQL query.
+   */
   inline std::string
   to_string() const {
     std::string sql = "select " + columns_ + " from " + from_;
@@ -50,6 +55,12 @@ class FilterBuilder {
     return sql;
   }
 
+  /**
+   * @brief Perform execSqlSync.
+   *
+   * @param client The smart pointer to the database client object.
+   * @return Result The result from DB.
+   */
   inline Result
   execSyncImpl(const DbClientPtr& client) {
     Result r(nullptr);
@@ -74,42 +85,91 @@ public:
       : from_(from), columns_(columns), filters_(filters), limit_(limit),
         offset_(offset) {}
 
+  /**
+   * @brief Filter rows whose value is the same as `value`.
+   *
+   * @param column The column to be filtered.
+   * @param value The value to filter rows.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
   inline FilterBuilder&
   eq(const std::string& column, const std::string& value) {
     filters_.emplace_back(column + " = '" + value + "'");
     return *this;
   }
 
+  /**
+   * @brief Filter rows whose value is NOT the same as `value`.
+   *
+   * @param column The column to be filtered.
+   * @param value The value to filter rows.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
   inline FilterBuilder&
   neq(const std::string& column, const std::string& value) {
     filters_.emplace_back(column + " != '" + value + "'");
     return *this;
   }
 
+  /**
+   * @brief Filter rows whose value is greater than `value`.
+   *
+   * @param column The column to be filtered.
+   * @param value The value to filter rows.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
   inline FilterBuilder&
   gt(const std::string& column, const std::string& value) {
     filters_.emplace_back(column + " > '" + value + "'");
     return *this;
   }
 
+  /**
+   * @brief Filter rows whose value is greater than or equal to `value`.
+   *
+   * @param column The column to be filtered.
+   * @param value The value to filter rows.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
   inline FilterBuilder&
   gte(const std::string& column, const std::string& value) {
     filters_.emplace_back(column + " >= '" + value + "'");
     return *this;
   }
 
+  /**
+   * @brief Filter rows whose value is less than `value`.
+   *
+   * @param column The column to be filtered.
+   * @param value The value to filter rows.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
   inline FilterBuilder&
   lt(const std::string& column, const std::string& value) {
     filters_.emplace_back(column + " < '" + value + "'");
     return *this;
   }
 
+  /**
+   * @brief Filter rows whose value is less than or equal to `value`.
+   *
+   * @param column The column to be filtered.
+   * @param value The value to filter rows.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
   inline FilterBuilder&
   lte(const std::string& column, const std::string& value) {
     filters_.emplace_back(column + " <= '" + value + "'");
     return *this;
   }
 
+  /**
+   * @brief Filter rows whose value matches the `pattern`.
+   *
+   * @param column The column to be filtered.
+   * @param pattern The pattern to filter rows.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
   inline FilterBuilder&
   like(const std::string& column, const std::string& pattern) {
     filters_.emplace_back(column + " like '" + pattern + "'");
@@ -118,6 +178,9 @@ public:
 
   /**
    * @brief Limit the result to `count`.
+   *
+   * @param count The number of rows to be limited.
+   * @return FilterBuilder& The FilterBuilder itself.
    */
   inline FilterBuilder&
   limit(std::uint64_t count) {
@@ -125,6 +188,12 @@ public:
     return *this;
   }
 
+  /**
+   * @brief Add a offset to the query.
+   *
+   * @param offset The offset.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
   inline FilterBuilder&
   offset(std::uint64_t count) {
     offset_ = count;
@@ -133,6 +202,10 @@ public:
 
   /**
    * @brief Limit the result to an inclusive range.
+   *
+   * @param from The first index to limit the result.
+   * @param to The last index to limit the result.
+   * @return FilterBuilder& The FilterBuilder itself.
    */
   inline FilterBuilder&
   range(std::uint64_t from, std::uint64_t to) {
@@ -143,6 +216,9 @@ public:
 
   /**
    * @brief Ensure returning only one row.
+   *
+   * @return FilterBuilder<T, SelectAll, true> The FilterBuilder where Single is
+   * true and all else is the same.
    */
   inline FilterBuilder<T, SelectAll, true>
   single() const {
