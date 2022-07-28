@@ -7,10 +7,8 @@
 // internal
 #include "models/Package.h"
 
+#include <QueryBuilder.h>
 #include <constants.hpp>
-
-// external
-#include <drogon/orm/Mapper.h> // NOLINT(build/include_order)
 
 using drogon_model::postgres::Package;
 
@@ -81,6 +79,16 @@ v1::repoinfo(
   }
 }
 
+template <typename Value>
+inline Json::Value
+toJson(const std::vector<Value>& container) {
+  Json::Value values(Json::arrayValue);
+  for (const Value& c : container) {
+    values.append(c.toJson());
+  }
+  return values;
+}
+
 void
 v1::search(
     const HttpRequestPtr& req,
@@ -101,28 +109,16 @@ v1::search(
   }
 
   // SQL query
-  drogon::orm::Mapper<Package> mp(drogon::app().getDbClient());
-  std::vector<Package> result;
-  if (perPage.asUInt() == 0) {
-    result = mp.findBy(drogon::orm::Criteria(
-        Package::Cols::_name, drogon::orm::CompareOperator::Like,
-        "%" + query.asString() + "%"
-    ));
-  } else {
-    result = mp.offset(0)
-                 .limit(perPage.asUInt() + 1)
-                 .findBy(drogon::orm::Criteria(
-                     Package::Cols::_name, drogon::orm::CompareOperator::Like,
-                     "%" + query.asString() + "%"
-                 ));
+  auto sqlQuery =
+      drogon::orm::QueryBuilder<Package>{}.from("package").select("*").like(
+          "name", "%" + query.asString() + "%"
+      );
+  if (perPage.asUInt() != 0) {
+    sqlQuery = sqlQuery.limit(perPage.asInt64());
   }
-
-  // Response build
-  Json::Value packages(Json::arrayValue);
-  for (const Package& row : result) {
-    packages.append(row.toJson());
-  }
-  callback(poac_api::ok(packages));
+  const std::vector<Package> result =
+      sqlQuery.execSync(drogon::app().getDbClient());
+  callback(poac_api::ok(toJson(result)));
 }
 
 void
