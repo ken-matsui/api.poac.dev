@@ -2,6 +2,7 @@
 
 // std
 #include <string>
+#include <vector>
 
 // external
 #include <drogon/HttpResponse.h> // NOLINT(build/include_order)
