@@ -149,6 +149,32 @@ public:
     return {from_, columns_, filters_, limit_, offset_};
   }
 
+#if __cplusplus >= 201703L || (defined _MSC_VER && _MSC_VER > 1900)
+  inline std::conditional_t<
+      SelectAll, std::conditional_t<Single, T, std::vector<T>>,
+      std::conditional_t<Single, Row, Result>>
+  execSync(const DbClientPtr& client) {
+    const Result r = execSyncImpl(client);
+
+    if constexpr (SelectAll) {
+      if constexpr (Single) {
+        return T(r[0]);
+      } else {
+        std::vector<T> ret;
+        for (const Row& row : r) {
+          ret.template emplace_back(T(row));
+        }
+        return ret;
+      }
+    } else {
+      if constexpr (Single) {
+        return r[0];
+      } else {
+        return r;
+      }
+    }
+  }
+#else
   template <
       bool SA = SelectAll, bool SI = Single,
       std::enable_if_t<SA, std::nullptr_t> = nullptr,
@@ -190,6 +216,7 @@ public:
   execSync(const DbClientPtr& client) {
     return execSyncImpl(client);
   }
+#endif
 };
 
 } // namespace drogon::orm
