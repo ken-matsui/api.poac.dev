@@ -150,7 +150,7 @@ public:
   }
 
 #if __cplusplus >= 201703L || (defined _MSC_VER && _MSC_VER > 1900)
-  inline std::conditional_t<
+  std::conditional_t<
       SelectAll, std::conditional_t<Single, T, std::vector<T>>,
       std::conditional_t<Single, Row, Result>>
   execSync(const DbClientPtr& client) {
@@ -189,7 +189,7 @@ public:
       bool SA = SelectAll, bool SI = Single,
       std::enable_if_t<SA, std::nullptr_t> = nullptr,
       std::enable_if_t<!SI, std::nullptr_t> = nullptr>
-  inline std::vector<T>
+  std::vector<T>
   execSync(const DbClientPtr& client) {
     const Result r = execSyncImpl(client);
     std::vector<T> ret;
