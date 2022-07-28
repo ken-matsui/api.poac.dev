@@ -225,7 +225,7 @@ public:
     return {from_, columns_, filters_, limit_, offset_};
   }
 
-#if __cplusplus >= 201703L || (defined _MSC_VER && _MSC_VER > 1900)
+#ifdef __cpp_if_constexpr
   std::conditional_t<
       SelectAll, std::conditional_t<Single, T, std::vector<T>>,
       std::conditional_t<Single, Row, Result>>
