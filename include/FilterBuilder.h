@@ -23,18 +23,14 @@
 
 namespace drogon::orm {
 
-enum class FilterOperator {
-
-};
-
-template <typename T, bool Single = false>
+template <typename T, bool SelectAll, bool Single = false>
 class FilterBuilder {
 public:
   std::string from_;
   std::string columns_;
   std::vector<std::string> filters_;
   optional<std::uint64_t> limit_;
-  optional<std::uint64_t> offset_;
+  optional<std::uint64_t> offset_; // TODO: private
 
   inline FilterBuilder&
   eq(const std::string& column, const std::string& value) {
@@ -103,12 +99,14 @@ public:
   /**
    * @brief Ensure returning only one row.
    */
-  inline FilterBuilder<T, true>
+  inline FilterBuilder<T, SelectAll, true>
   single() {
     return {from_, columns_, filters_, limit_, offset_};
   }
 
-  inline std::conditional_t<Single, T, std::vector<T>>
+  inline std::conditional_t<
+      SelectAll, std::conditional_t<Single, T, std::vector<T>>,
+      std::conditional_t<Single, Row, Result>>
   execSync(const DbClientPtr& client) {
     std::string sql = "select " + columns_ + " from " + from_;
     if (!filters_.empty()) {
@@ -132,14 +130,22 @@ public:
       binder.exec(); // exec may be throw exception;
     }
 
-    if constexpr (Single) {
-      return T(r[0]);
-    } else {
-      std::vector<T> ret;
-      for (const Row& row : r) {
-        ret.template emplace_back(T(row));
+    if constexpr (SelectAll) {
+      if constexpr (Single) {
+        return T(r[0]);
+      } else {
+        std::vector<T> ret;
+        for (const Row& row : r) {
+          ret.template emplace_back(T(row));
+        }
+        return ret;
       }
-      return ret;
+    } else {
+      if constexpr (Single) {
+        return r[0];
+      } else {
+        return r;
+      }
     }
   }
 };

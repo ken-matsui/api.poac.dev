@@ -8,7 +8,7 @@
 #include "models/Package.h"
 
 #include <QueryBuilder.h>
-#include <constants.hpp>
+#include <utils.hpp>
 
 using drogon_model::postgres::Package;
 
@@ -27,22 +27,20 @@ v1::deps(
     return;
   }
 
-  // SQL query
-  const drogon::orm::DbClientPtr clientPtr = drogon::app().getDbClient();
-  try {
-    const auto result = clientPtr->execSqlSync(
-        "select metadata->'dependencies' as dependencies from package where name = $1 and version = $2 limit 1",
-        name.asString(), version.asString()
-    );
+  const drogon::orm::Row result =
+      drogon::orm::QueryBuilder<Package>{}
+          .from("package")
+          .select("metadata->'dependencies' as dependencies")
+          .eq("name", name.asString())
+          .eq("version", version.asString())
+          .limit(1)
+          .single()
+          .execSync(drogon::app().getDbClient());
 
-    // Response build
-    Json::Value package(Json::objectValue);
-    package["dependencies"] = result[0]["dependencies"].as<Json::Value>();
-    callback(poac_api::ok(package));
-  } catch (const drogon::orm::DrogonDbException& e) {
-    LOG_ERROR << e.base().what();
-    callback(poac_api::internalError());
-  }
+  // Response build
+  Json::Value package(Json::objectValue);
+  package["dependencies"] = result["dependencies"].as<Json::Value>();
+  callback(poac_api::ok(package));
 }
 
 void
@@ -60,33 +58,20 @@ v1::repoinfo(
     return;
   }
 
-  // SQL query
-  const drogon::orm::DbClientPtr clientPtr = drogon::app().getDbClient();
-  try {
-    const auto result = clientPtr->execSqlSync(
-        "select repository, sha256sum from package where name = $1 and version = $2 limit 1",
-        name.asString(), version.asString()
-    );
+  const drogon::orm::Row result = drogon::orm::QueryBuilder<Package>{}
+                                      .from("package")
+                                      .select("repository, sha256sum")
+                                      .eq("name", name.asString())
+                                      .eq("version", version.asString())
+                                      .limit(1)
+                                      .single()
+                                      .execSync(drogon::app().getDbClient());
 
-    // Response build
-    Json::Value package(Json::objectValue);
-    package["repository"] = result[0]["repository"].as<std::string>();
-    package["sha256sum"] = result[0]["sha256sum"].as<std::string>();
-    callback(poac_api::ok(package));
-  } catch (const drogon::orm::DrogonDbException& e) {
-    LOG_ERROR << e.base().what();
-    callback(poac_api::internalError());
-  }
-}
-
-template <typename Value>
-inline Json::Value
-toJson(const std::vector<Value>& container) {
-  Json::Value values(Json::arrayValue);
-  for (const Value& c : container) {
-    values.append(c.toJson());
-  }
-  return values;
+  // Response build
+  Json::Value package(Json::objectValue);
+  package["repository"] = result["repository"].as<std::string>();
+  package["sha256sum"] = result["sha256sum"].as<std::string>();
+  callback(poac_api::ok(package));
 }
 
 void
@@ -110,7 +95,7 @@ v1::search(
 
   // SQL query
   auto sqlQuery =
-      drogon::orm::QueryBuilder<Package>{}.from("package").select("*").like(
+      drogon::orm::QueryBuilder<Package>{}.from("package").selectAll().like(
           "name", "%" + query.asString() + "%"
       );
   if (perPage.asUInt() != 0) {
@@ -118,7 +103,7 @@ v1::search(
   }
   const std::vector<Package> result =
       sqlQuery.execSync(drogon::app().getDbClient());
-  callback(poac_api::ok(toJson(result)));
+  callback(poac_api::ok(poac_api::toJson(result)));
 }
 
 void
@@ -135,21 +120,16 @@ v1::versions(
     return;
   }
 
-  // SQL query
-  const drogon::orm::DbClientPtr clientPtr = drogon::app().getDbClient();
-  try {
-    const auto result = clientPtr->execSqlSync(
-        "select version from package where name = $1", name.asString()
-    );
+  const drogon::orm::Result result = drogon::orm::QueryBuilder<Package>{}
+                                         .from("package")
+                                         .select("version")
+                                         .eq("name", name.asString())
+                                         .execSync(drogon::app().getDbClient());
 
-    // Response build
-    Json::Value versions(Json::arrayValue);
-    for (const drogon::orm::Row& row : result) {
-      versions.append(row["version"].as<std::string>());
-    }
-    callback(poac_api::ok(versions));
-  } catch (const drogon::orm::DrogonDbException& e) {
-    LOG_ERROR << e.base().what();
-    callback(poac_api::internalError());
+  // Response build
+  Json::Value versions(Json::arrayValue);
+  for (const drogon::orm::Row& row : result) {
+    versions.append(row["version"].as<std::string>());
   }
+  callback(poac_api::ok(versions));
 }

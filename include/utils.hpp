@@ -46,4 +46,14 @@ ok(const Json::Value& value) {
   return resp;
 }
 
+template <typename Value>
+inline Json::Value
+toJson(const std::vector<Value>& container) {
+  Json::Value values(Json::arrayValue);
+  for (const Value& c : container) {
+    values.append(c.toJson());
+  }
+  return values;
+}
+
 } // namespace poac_api

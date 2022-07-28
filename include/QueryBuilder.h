@@ -18,7 +18,6 @@
 #include <string>
 
 namespace drogon::orm {
-
 template <typename T>
 class QueryBuilder {
   std::string from_;
@@ -30,9 +29,14 @@ public:
     return *this;
   }
 
-  inline FilterBuilder<T>
+  inline FilterBuilder<T, false>
   select(const std::string& columns) {
     return {from_, columns};
+  }
+
+  inline FilterBuilder<T, true>
+  selectAll() {
+    return {from_, "*"};
   }
 };
 
