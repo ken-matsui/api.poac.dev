@@ -17,21 +17,30 @@
 #include <drogon/orm/DbClient.h>
 #include <drogon/utils/optional.h>
 #include <drogon/utils/string_view.h>
+#include <future>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace drogon::orm {
-
 template <typename T, bool SelectAll, bool Single = false>
 class FilterBuilder {
+  using ResultType = std::conditional_t<
+      SelectAll, std::conditional_t<Single, T, std::vector<T>>,
+      std::conditional_t<Single, Row, Result>>;
+
   std::string from_;
   std::string columns_;
   std::vector<std::string> filters_;
   optional<std::uint64_t> limit_;
   optional<std::uint64_t> offset_;
+  // The order is important; use vector<pair> instead of unordered_map and
+  // map.
+  std::vector<std::pair<std::string, bool>> orders_;
 
+public:
   /**
    * @brief Generate SQL query in string.
    *
@@ -52,25 +61,15 @@ class FilterBuilder {
     if (offset_.has_value()) {
       sql += " offset " + std::to_string(offset_.value());
     }
-    return sql;
-  }
-
-  /**
-   * @brief Perform execSqlSync.
-   *
-   * @param client The smart pointer to the database client object.
-   * @return Result The result from DB.
-   */
-  inline Result
-  execSyncImpl(const DbClientPtr& client) {
-    Result r(nullptr);
-    {
-      auto binder = *client << to_string();
-      binder << Mode::Blocking;
-      binder >> [&r](const Result& result) { r = result; };
-      binder.exec(); // exec may throw exception
+    if (!orders_.empty()) {
+      sql += " order by " + orders_[0].first + " "
+             + std::string(orders_[0].second ? "asc" : "desc");
+      for (int i = 1; i < orders_.size(); ++i) {
+        sql += ", " + orders_[i].first + " "
+               + std::string(orders_[i].second ? "asc" : "desc");
+      }
     }
-    return r;
+    return sql;
   }
 
 public:
@@ -80,10 +79,11 @@ public:
       string_view from, string_view columns,
       const std::vector<std::string>& filters,
       const optional<std::uint64_t>& limit,
-      const optional<std::uint64_t>& offset
+      const optional<std::uint64_t>& offset,
+      const std::vector<std::pair<std::string, bool>>& orders
   )
       : from_(from), columns_(columns), filters_(filters), limit_(limit),
-        offset_(offset) {}
+        offset_(offset), orders_(orders) {}
 
   /**
    * @brief Filter rows whose value is the same as `value`.
@@ -215,23 +215,32 @@ public:
   }
 
   /**
+   * @brief Order the result.
+   *
+   * @param column The column to order by.
+   * @param asc If `true`, ascending order. If `false`, descending order.
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
+  inline FilterBuilder&
+  order(const std::string& column, bool asc = true) {
+    orders_.emplace_back(column, asc);
+    return *this;
+  }
+
+  /**
    * @brief Ensure returning only one row.
    *
-   * @return FilterBuilder<T, SelectAll, true> The FilterBuilder where Single is
-   * true and all else is the same.
+   * @return FilterBuilder<T, SelectAll, true> The FilterBuilder where Single
+   * is true and all else is the same.
    */
   inline FilterBuilder<T, SelectAll, true>
   single() const {
-    return {from_, columns_, filters_, limit_, offset_};
+    return {from_, columns_, filters_, limit_, offset_, orders_};
   }
 
 #ifdef __cpp_if_constexpr
-  std::conditional_t<
-      SelectAll, std::conditional_t<Single, T, std::vector<T>>,
-      std::conditional_t<Single, Row, Result>>
-  execSync(const DbClientPtr& client) {
-    const Result r = execSyncImpl(client);
-
+  static ResultType
+  convert_result(const Result& r) {
     if constexpr (SelectAll) {
       if constexpr (Single) {
         return T(r[0]);
@@ -255,40 +264,92 @@ public:
       bool SA = SelectAll, bool SI = Single,
       std::enable_if_t<SA, std::nullptr_t> = nullptr,
       std::enable_if_t<SI, std::nullptr_t> = nullptr>
-  inline T
-  execSync(const DbClientPtr& client) {
-    return T(execSyncImpl(client)[0]);
+  static inline T
+  convert_result(const Result& r) {
+    return T(r[0]);
   }
-
   template <
       bool SA = SelectAll, bool SI = Single,
       std::enable_if_t<SA, std::nullptr_t> = nullptr,
       std::enable_if_t<!SI, std::nullptr_t> = nullptr>
-  std::vector<T>
-  execSync(const DbClientPtr& client) {
+  static inline std::vector<T>
+  convert_result(const Result& r) {
     std::vector<T> ret;
-    for (const Row& row : execSyncImpl(client)) {
+    for (const Row& row : r) {
       ret.template emplace_back(T(row));
     }
     return ret;
   }
-
   template <
       bool SA = SelectAll, bool SI = Single,
       std::enable_if_t<!SA, std::nullptr_t> = nullptr,
       std::enable_if_t<SI, std::nullptr_t> = nullptr>
-  inline Row
-  execSync(const DbClientPtr& client) {
-    return execSyncImpl(client)[0];
+  static inline Row
+  convert_result(const Result& r) {
+    return r[0];
   }
-
   template <
       bool SA = SelectAll, bool SI = Single,
       std::enable_if_t<!SA, std::nullptr_t> = nullptr,
       std::enable_if_t<!SI, std::nullptr_t> = nullptr>
-  inline Result
+  static inline Result
+  convert_result(const Result& r) {
+    return r;
+  }
+#endif
+
+  inline ResultType
   execSync(const DbClientPtr& client) {
-    return execSyncImpl(client);
+    Result r(nullptr);
+    {
+      auto binder = *client << to_string();
+      binder << Mode::Blocking;
+      binder >> [&r](const Result& result) { r = result; };
+      binder.exec(); // exec may throw exception
+    }
+    return convert_result(r);
+  }
+
+  std::future<ResultType>
+  execAsync(const DbClientPtr& client) {
+    auto binder = *client << to_string();
+    std::shared_ptr<std::promise<ResultType>> prom =
+        std::make_shared<std::promise<ResultType>>();
+    binder >>
+        [prom, this](const Result& r) { prom->set_value(convert_result(r)); };
+    binder >> [prom](const std::exception_ptr& e) { prom->set_exception(e); };
+    binder.exec();
+    return prom->get_future();
+  }
+
+#ifdef __cpp_impl_coroutine
+  namespace internal {
+    struct [[nodiscard]] BuilderAwaiter : public CallbackAwaiter<ResultType> {
+      BuilderAwaiter(internal::SqlBinder&& binder)
+          : binder_(std::move(binder)) {}
+
+      void
+      await_suspend(std::coroutine_handle<> handle) {
+        binder_ >> [handle, this](const drogon::orm::Result& result) {
+          setValue(convert_result(result));
+          handle.resume();
+        };
+        binder_ >> [handle, this](const std::exception_ptr& e) {
+          setException(e);
+          handle.resume();
+        };
+        binder_.exec();
+      }
+
+    private:
+      internal::SqlBinder binder_;
+    };
+  } // namespace internal
+
+  inline internal::BuilderAwaiter
+  execCoro(const DbClientPtr& client) {
+    auto binder = *client << to_string();
+    return {std::move(binder)};
   }
 #endif
 };
