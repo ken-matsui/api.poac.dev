@@ -33,18 +33,16 @@ class FilterBuilder {
   optional<std::uint64_t> offset_;
 
 public:
-  friend class FilterBuilder<T, SelectAll, !Single>;
-
   FilterBuilder(string_view from, string_view columns)
       : from_(from), columns_(columns) {}
-  FilterBuilder<T, SelectAll, true>(const FilterBuilder<T, SelectAll, false>& fb
-  ) {
-    from_ = fb.from_;
-    columns_ = fb.columns_;
-    filters_ = fb.filters_;
-    limit_ = fb.limit_;
-    offset_ = fb.offset_;
-  }
+  FilterBuilder(
+      string_view from, string_view columns,
+      const std::vector<std::string>& filters,
+      const optional<std::uint64_t>& limit,
+      const optional<std::uint64_t>& offset
+  )
+      : from_(from), columns_(columns), filters_(filters), limit_(limit),
+        offset_(offset) {}
 
   inline FilterBuilder&
   eq(const std::string& column, const std::string& value) {
@@ -115,7 +113,7 @@ public:
    */
   inline FilterBuilder<T, SelectAll, true>
   single() {
-    return *this;
+    return {from_, columns_, filters_, limit_, offset_};
   }
 
   inline std::conditional_t<
@@ -141,7 +139,7 @@ public:
       auto binder = *client << std::move(sql);
       binder << Mode::Blocking;
       binder >> [&r](const Result& result) { r = result; };
-      binder.exec(); // exec may be throw exception;
+      binder.exec(); // exec may throw exception
     }
 
     if constexpr (SelectAll) {
