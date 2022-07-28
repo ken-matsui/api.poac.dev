@@ -14,10 +14,10 @@
 
 #pragma once
 
+#include <BaseBuilder.h>
 #include <drogon/orm/DbClient.h>
 #include <drogon/utils/optional.h>
 #include <drogon/utils/string_view.h>
-#include <BaseBuilder.h>
 #include <future>
 #include <memory>
 #include <string>
