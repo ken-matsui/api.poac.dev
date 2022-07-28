@@ -181,8 +181,7 @@ public:
       std::enable_if_t<SI, std::nullptr_t> = nullptr>
   inline T
   execSync(const DbClientPtr& client) {
-    const Result r = execSyncImpl(client);
-    return T(r[0]);
+    return T(execSyncImpl(client)[0]);
   }
 
   template <
@@ -191,9 +190,8 @@ public:
       std::enable_if_t<!SI, std::nullptr_t> = nullptr>
   std::vector<T>
   execSync(const DbClientPtr& client) {
-    const Result r = execSyncImpl(client);
     std::vector<T> ret;
-    for (const Row& row : r) {
+    for (const Row& row : execSyncImpl(client)) {
       ret.template emplace_back(T(row));
     }
     return ret;
