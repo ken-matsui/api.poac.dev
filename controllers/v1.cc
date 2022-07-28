@@ -103,7 +103,7 @@ v1::search(
   }
   const std::vector<Package> result =
       sqlQuery.execSync(drogon::app().getDbClient());
-  callback(poac_api::ok(poac_api::toJson(result)));
+  callback(poac_api::ok(drogon::orm::toJson(result)));
 }
 
 void

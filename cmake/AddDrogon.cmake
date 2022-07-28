@@ -9,7 +9,7 @@ CPMAddPackage(
     NAME drogon
     VERSION 1.7.5
     GITHUB_REPOSITORY drogonframework/drogon
-    GIT_TAG v1.7.5
+    GIT_TAG c9f5946eff9d74175357642100001efb4298e301
 )
 
 list(APPEND POAC_API_DEPENDENCIES drogon)
