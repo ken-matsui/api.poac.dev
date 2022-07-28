@@ -32,6 +32,36 @@ class FilterBuilder {
   optional<std::uint64_t> limit_;
   optional<std::uint64_t> offset_;
 
+  inline std::string
+  to_string() const {
+    std::string sql = "select " + columns_ + " from " + from_;
+    if (!filters_.empty()) {
+      sql += " where " + filters_[0];
+      for (int i = 1; i < filters_.size(); ++i) {
+        sql += " and " + filters_[i];
+      }
+    }
+    if (limit_.has_value()) {
+      sql += " limit " + std::to_string(limit_.value());
+    }
+    if (offset_.has_value()) {
+      sql += " offset " + std::to_string(offset_.value());
+    }
+    return sql;
+  }
+
+  inline Result
+  execSyncImpl(const DbClientPtr& client) {
+    Result r(nullptr);
+    {
+      auto binder = *client << to_string();
+      binder << Mode::Blocking;
+      binder >> [&r](const Result& result) { r = result; };
+      binder.exec(); // exec may throw exception
+    }
+    return r;
+  }
+
 public:
   FilterBuilder(string_view from, string_view columns)
       : from_(from), columns_(columns) {}
@@ -86,6 +116,9 @@ public:
     return *this;
   }
 
+  /**
+   * @brief Limit the result to `count`.
+   */
   inline FilterBuilder&
   limit(std::uint64_t count) {
     limit_ = count;
@@ -99,7 +132,7 @@ public:
   }
 
   /**
-   * @brief Limit result to an inclusive range.
+   * @brief Limit the result to an inclusive range.
    */
   inline FilterBuilder&
   range(std::uint64_t from, std::uint64_t to) {
@@ -112,53 +145,50 @@ public:
    * @brief Ensure returning only one row.
    */
   inline FilterBuilder<T, SelectAll, true>
-  single() {
+  single() const {
     return {from_, columns_, filters_, limit_, offset_};
   }
 
-  inline std::conditional_t<
-      SelectAll, std::conditional_t<Single, T, std::vector<T>>,
-      std::conditional_t<Single, Row, Result>>
+  template <
+      bool SA = SelectAll, bool SI = Single,
+      std::enable_if_t<SA, std::nullptr_t> = nullptr,
+      std::enable_if_t<SI, std::nullptr_t> = nullptr>
+  inline T
   execSync(const DbClientPtr& client) {
-    std::string sql = "select " + columns_ + " from " + from_;
-    if (!filters_.empty()) {
-      sql += " where " + filters_[0];
-      for (int i = 1; i < filters_.size(); ++i) {
-        sql += " and " + filters_[i];
-      }
-    }
-    if (limit_.has_value()) {
-      sql += " limit " + std::to_string(limit_.value());
-    }
-    if (offset_.has_value()) {
-      sql += " offset " + std::to_string(offset_.value());
-    }
+    const Result r = execSyncImpl(client);
+    return T(r[0]);
+  }
 
-    Result r(nullptr);
-    {
-      auto binder = *client << std::move(sql);
-      binder << Mode::Blocking;
-      binder >> [&r](const Result& result) { r = result; };
-      binder.exec(); // exec may throw exception
+  template <
+      bool SA = SelectAll, bool SI = Single,
+      std::enable_if_t<SA, std::nullptr_t> = nullptr,
+      std::enable_if_t<!SI, std::nullptr_t> = nullptr>
+  inline std::vector<T>
+  execSync(const DbClientPtr& client) {
+    const Result r = execSyncImpl(client);
+    std::vector<T> ret;
+    for (const Row& row : r) {
+      ret.template emplace_back(T(row));
     }
+    return ret;
+  }
 
-    if constexpr (SelectAll) {
-      if constexpr (Single) {
-        return T(r[0]);
-      } else {
-        std::vector<T> ret;
-        for (const Row& row : r) {
-          ret.template emplace_back(T(row));
-        }
-        return ret;
-      }
-    } else {
-      if constexpr (Single) {
-        return r[0];
-      } else {
-        return r;
-      }
-    }
+  template <
+      bool SA = SelectAll, bool SI = Single,
+      std::enable_if_t<!SA, std::nullptr_t> = nullptr,
+      std::enable_if_t<SI, std::nullptr_t> = nullptr>
+  inline Row
+  execSync(const DbClientPtr& client) {
+    return execSyncImpl(client)[0];
+  }
+
+  template <
+      bool SA = SelectAll, bool SI = Single,
+      std::enable_if_t<!SA, std::nullptr_t> = nullptr,
+      std::enable_if_t<!SI, std::nullptr_t> = nullptr>
+  inline Result
+  execSync(const DbClientPtr& client) {
+    return execSyncImpl(client);
   }
 };
 
