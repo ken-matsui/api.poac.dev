@@ -15,8 +15,6 @@
 #pragma once
 
 #include <drogon/orm/DbClient.h>
-#include <drogon/utils/optional.h>
-#include <drogon/utils/string_view.h>
 #include <future>
 #include <memory>
 #include <string>
