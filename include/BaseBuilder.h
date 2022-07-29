@@ -25,7 +25,7 @@
 #include <vector>
 
 #ifdef __cpp_impl_coroutine
-#include <drogon/utils/coroutine.h>
+#  include <drogon/utils/coroutine.h>
 #endif
 
 namespace drogon::orm {
