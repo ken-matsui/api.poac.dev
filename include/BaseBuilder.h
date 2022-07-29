@@ -186,6 +186,12 @@ public:
       binder_.exec();
     }
 
+  protected:
+    void
+    setException(const std::exception_ptr& e) {
+      exception_ = e;
+    }
+
   private:
     internal::SqlBinder binder_;
   };
