@@ -94,7 +94,7 @@ public:
       } else {
         std::vector<T> ret;
         for (const Row& row : r) {
-          ret.template emplace_back(T(row));
+          ret.emplace_back(T(row));
         }
         return ret;
       }
