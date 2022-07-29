@@ -99,7 +99,7 @@ v1::search(
           "name", "%" + query.asString() + "%"
       );
   if (perPage.asUInt() != 0) {
-    sqlQuery = sqlQuery.limit(perPage.asInt64());
+    sqlQuery.limit(perPage.asInt64());
   }
   const std::vector<Package> result =
       sqlQuery.execSync(drogon::app().getDbClient());

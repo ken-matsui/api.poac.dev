@@ -19,24 +19,22 @@
 
 namespace drogon::orm {
 template <typename T>
-class QueryBuilder {
-  std::string from_;
-
+class QueryBuilder : public FilterBuilder<T, true> {
 public:
   inline QueryBuilder
   from(const std::string& table) {
-    from_ = table;
+    this->from_ = table;
     return *this;
   }
 
   inline FilterBuilder<T, false>
   select(const std::string& columns) {
-    return {from_, columns};
+    return {this->from_, columns};
   }
 
   inline FilterBuilder<T, true>
   selectAll() {
-    return {from_, "*"};
+    return {this->from_, "*"};
   }
 };
 

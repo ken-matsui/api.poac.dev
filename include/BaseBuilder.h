@@ -15,6 +15,8 @@
 #pragma once
 
 #include <drogon/orm/DbClient.h>
+#include <drogon/utils/optional.h>
+#include <drogon/utils/string_view.h>
 #include <future>
 #include <memory>
 #include <string>
@@ -23,6 +25,10 @@
 #include <vector>
 
 namespace drogon::orm {
+// Forward declaration to be a friend
+template <typename T, bool SelectAll, bool Single = false>
+class TransformBuilder;
+
 template <typename T, bool SelectAll, bool Single = false>
 class BaseBuilder {
   using ResultType = std::conditional_t<
@@ -30,13 +36,49 @@ class BaseBuilder {
       std::conditional_t<Single, Row, Result>>;
 
 protected:
+  // Make the constructor of `TransformBuilder<T, SelectAll, true>` through
+  // `TransformBuilder::single()` be able to read these protected members.
+  friend class TransformBuilder<T, SelectAll, true>;
+
+  std::string from_;
+  std::string columns_;
+  std::vector<std::string> filters_;
+  optional<std::uint64_t> limit_;
+  optional<std::uint64_t> offset_;
+  // The order is important; use vector<pair> instead of unordered_map and
+  // map.
+  std::vector<std::pair<std::string, bool>> orders_;
+
   /**
    * @brief Generate SQL query in string.
    *
    * @return std::string The string generated SQL query.
    */
-  virtual inline std::string
-  to_string() const = 0;
+  inline std::string
+  to_string() const {
+    std::string sql = "select " + columns_ + " from " + from_;
+    if (!filters_.empty()) {
+      sql += " where " + filters_[0];
+      for (int i = 1; i < filters_.size(); ++i) {
+        sql += " and " + filters_[i];
+      }
+    }
+    if (limit_.has_value()) {
+      sql += " limit " + std::to_string(limit_.value());
+    }
+    if (offset_.has_value()) {
+      sql += " offset " + std::to_string(offset_.value());
+    }
+    if (!orders_.empty()) {
+      sql += " order by " + orders_[0].first + " "
+             + std::string(orders_[0].second ? "asc" : "desc");
+      for (int i = 1; i < orders_.size(); ++i) {
+        sql += ", " + orders_[i].first + " "
+               + std::string(orders_[i].second ? "asc" : "desc");
+      }
+    }
+    return sql;
+  }
 
 public:
 #ifdef __cpp_if_constexpr
