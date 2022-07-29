@@ -67,12 +67,6 @@ protected:
         sql += " and " + filters_[i];
       }
     }
-    if (limit_.has_value()) {
-      sql += " limit " + std::to_string(limit_.value());
-    }
-    if (offset_.has_value()) {
-      sql += " offset " + std::to_string(offset_.value());
-    }
     if (!orders_.empty()) {
       sql += " order by " + orders_[0].first + " "
              + std::string(orders_[0].second ? "asc" : "desc");
@@ -80,6 +74,12 @@ protected:
         sql += ", " + orders_[i].first + " "
                + std::string(orders_[i].second ? "asc" : "desc");
       }
+    }
+    if (limit_.has_value()) {
+      sql += " limit " + std::to_string(limit_.value());
+    }
+    if (offset_.has_value()) {
+      sql += " offset " + std::to_string(offset_.value());
     }
     return sql;
   }
