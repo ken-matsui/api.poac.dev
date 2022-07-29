@@ -186,14 +186,20 @@ public:
       binder_.exec();
     }
 
+  private:
+    internal::SqlBinder binder_;
+    std::exception_ptr exception_{nullptr};
+
   protected:
+    /**
+     * @note This is needed to be explicitly declared to suppress the following
+     * error: there are no arguments to 'setException' that depend on a
+     * template parameter, so a declaration of 'setException' must be available
+     */
     void
     setException(const std::exception_ptr& e) {
       exception_ = e;
     }
-
-  private:
-    internal::SqlBinder binder_;
   };
 
   inline BuilderAwaiter
