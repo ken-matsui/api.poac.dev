@@ -162,8 +162,7 @@ public:
     auto binder = *client << to_string();
     std::shared_ptr<std::promise<ResultType>> prom =
         std::make_shared<std::promise<ResultType>>();
-    binder >>
-        [prom, this](const Result& r) { prom->set_value(convert_result(r)); };
+    binder >> [prom](const Result& r) { prom->set_value(convert_result(r)); };
     binder >> [prom](const std::exception_ptr& e) { prom->set_exception(e); };
     binder.exec();
     return prom->get_future();
