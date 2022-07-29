@@ -190,7 +190,7 @@ public:
     internal::SqlBinder binder_;
   };
 
-  inline internal::BuilderAwaiter
+  inline BuilderAwaiter
   execCoro(const DbClientPtr& client) {
     auto binder = *client << to_string();
     return {std::move(binder)};
