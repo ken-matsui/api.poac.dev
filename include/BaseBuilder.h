@@ -24,6 +24,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef __cpp_impl_coroutine
+#include <drogon/utils/coroutine.h>
+#endif
+
 namespace drogon::orm {
 // Forward declaration to be a friend
 template <typename T, bool SelectAll, bool Single = false>
@@ -166,28 +170,25 @@ public:
   }
 
 #ifdef __cpp_impl_coroutine
-  namespace internal {
-    struct [[nodiscard]] BuilderAwaiter : public CallbackAwaiter<ResultType> {
-      BuilderAwaiter(internal::SqlBinder&& binder)
-          : binder_(std::move(binder)) {}
+  struct [[nodiscard]] BuilderAwaiter : public CallbackAwaiter<ResultType> {
+    BuilderAwaiter(internal::SqlBinder&& binder) : binder_(std::move(binder)) {}
 
-      void
-      await_suspend(std::coroutine_handle<> handle) {
-        binder_ >> [handle, this](const drogon::orm::Result& result) {
-          setValue(convert_result(result));
-          handle.resume();
-        };
-        binder_ >> [handle, this](const std::exception_ptr& e) {
-          setException(e);
-          handle.resume();
-        };
-        binder_.exec();
-      }
+    void
+    await_suspend(std::coroutine_handle<> handle) {
+      binder_ >> [handle, this](const drogon::orm::Result& result) {
+        setValue(convert_result(result));
+        handle.resume();
+      };
+      binder_ >> [handle, this](const std::exception_ptr& e) {
+        setException(e);
+        handle.resume();
+      };
+      binder_.exec();
+    }
 
-    private:
-      internal::SqlBinder binder_;
-    };
-  } // namespace internal
+  private:
+    internal::SqlBinder binder_;
+  };
 
   inline internal::BuilderAwaiter
   execCoro(const DbClientPtr& client) {
