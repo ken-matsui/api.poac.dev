@@ -137,10 +137,10 @@ private:
     std::string sql = "select " + columns_ + " from " + from_;
     if (!filters_.empty()) {
       sql += " where " + filters_[0].column + " " + to_string(filters_[0].op)
-             + " " + placeholder() + "";
+             + " " + placeholder();
       for (int i = 1; i < filters_.size(); ++i) {
         sql += " and " + filters_[i].column + " " + to_string(filters_[i].op)
-               + " " + placeholder() + "";
+               + " " + placeholder();
       }
     }
     if (!orders_.empty()) {
@@ -188,11 +188,55 @@ private:
       sql += ", " + placeholder();
     }
     sql += ")";
+
     if (returning_) {
       if (type != ClientType::Mysql) {
         sql += " returning *";
       }
     }
+
+    LOG_TRACE << sql;
+    return sql;
+  }
+
+  /**
+   * @brief Generate SQL query in string for `UPDATE`.
+   *
+   * @return std::string The string generated SQL query.
+   */
+  inline std::string
+  gen_update_sql(ClientType type) const {
+    int pCount = 0;
+    const auto placeholder = [type, &pCount]() {
+      ++pCount;
+      return type == ClientType::PostgreSQL ? "$" + std::to_string(pCount)
+                                            : "?";
+    };
+
+    std::string sql = "update " + from_ + " set ";
+    auto itr = values_.begin();
+    // values_ should not be empty. Skipping validation here.
+    sql += itr->first + " = " + placeholder();
+    ++itr;
+    for (; itr != values_.end(); ++itr) {
+      sql += ", " + itr->first + " = " + placeholder();
+    }
+
+    if (!filters_.empty()) {
+      sql += " where " + filters_[0].column + " " + to_string(filters_[0].op)
+             + " " + placeholder();
+      for (int i = 1; i < filters_.size(); ++i) {
+        sql += " and " + filters_[i].column + " " + to_string(filters_[i].op)
+               + " " + placeholder();
+      }
+    }
+
+    if (returning_) {
+      if (type != ClientType::Mysql) {
+        sql += " returning *";
+      }
+    }
+
     LOG_TRACE << sql;
     return sql;
   }
@@ -209,6 +253,8 @@ private:
         return gen_select_sql(type);
       case Method::Insert:
         return gen_insert_sql(type);
+      case Method::Update:
+        return gen_update_sql(type);
       default:
         unreachable();
     }
@@ -227,6 +273,15 @@ private:
         for (const auto& value : values_) {
           args.emplace_back(value.second);
         }
+        break;
+      case Method::Update:
+        for (const auto& value : values_) {
+          args.emplace_back(value.second);
+        }
+        for (const Filter& f : filters_) {
+          args.emplace_back(f.value);
+        }
+        break;
       default:
         unreachable();
     }

@@ -222,7 +222,6 @@ v1::authCallback(
         "https://poac.pm/api/auth?access_token=" + accessToken
         + "&user_metadata=" + userMetadata
     ));
-    return;
   } else {
     // not a new user
     const User& user = users[0];
@@ -233,6 +232,16 @@ v1::authCallback(
                 << user.toJson().toStyledString();
       callback(HttpResponse::newRedirectionResponse("https://poac.pm"));
       return;
+    }
+
+    // Stale user info (userMeta must be up-to-date)
+    if (userMeta.name != user.getValueOfName()
+        || userMeta.avatarUrl != user.getValueOfAvatarUrl()) {
+      drogon::orm::QueryBuilder<User>{}
+          .from("public.user")
+          .update({{"name", userMeta.name}, {"avatar_url", userMeta.avatarUrl}})
+          .eq("user_name", userMeta.userName)
+          .execSync(drogon::app().getDbClient());
     }
 
     Json::Value userJson = user.toJson();
@@ -248,9 +257,6 @@ v1::authCallback(
         "https://poac.pm/api/auth?access_token=" + accessToken
         + "&user_metadata=" + userMetadata
     ));
-    return;
-
-    // TODO(ken-matsui): update (name, avatar_url) if exists
   }
 }
 
