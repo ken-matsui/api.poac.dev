@@ -44,9 +44,9 @@ class User
     struct Cols
     {
         static const std::string _id;
+        static const std::string _user_name;
         static const std::string _email;
         static const std::string _name;
-        static const std::string _user_name;
         static const std::string _avatar_url;
         static const std::string _status;
     };
@@ -109,6 +109,15 @@ class User
     void setId(const std::string &pId) noexcept;
     void setId(std::string &&pId) noexcept;
 
+    /**  For column user_name  */
+    ///Get the value of the column user_name, returns the default value if the column is null
+    const std::string &getValueOfUserName() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getUserName() const noexcept;
+    ///Set the value of the column user_name
+    void setUserName(const std::string &pUserName) noexcept;
+    void setUserName(std::string &&pUserName) noexcept;
+
     /**  For column email  */
     ///Get the value of the column email, returns the default value if the column is null
     const std::string &getValueOfEmail() const noexcept;
@@ -126,15 +135,6 @@ class User
     ///Set the value of the column name
     void setName(const std::string &pName) noexcept;
     void setName(std::string &&pName) noexcept;
-
-    /**  For column user_name  */
-    ///Get the value of the column user_name, returns the default value if the column is null
-    const std::string &getValueOfUserName() const noexcept;
-    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<std::string> &getUserName() const noexcept;
-    ///Set the value of the column user_name
-    void setUserName(const std::string &pUserName) noexcept;
-    void setUserName(std::string &&pUserName) noexcept;
 
     /**  For column avatar_url  */
     ///Get the value of the column avatar_url, returns the default value if the column is null
@@ -177,9 +177,9 @@ class User
     ///For mysql or sqlite3
     void updateId(const uint64_t id);
     std::shared_ptr<std::string> id_;
+    std::shared_ptr<std::string> userName_;
     std::shared_ptr<std::string> email_;
     std::shared_ptr<std::string> name_;
-    std::shared_ptr<std::string> userName_;
     std::shared_ptr<std::string> avatarUrl_;
     std::shared_ptr<std::string> status_;
     struct MetaData
@@ -219,17 +219,17 @@ class User
         }
         if(dirtyFlag_[1])
         {
-            sql += "email,";
+            sql += "user_name,";
             ++parametersCount;
         }
         if(dirtyFlag_[2])
         {
-            sql += "name,";
+            sql += "email,";
             ++parametersCount;
         }
         if(dirtyFlag_[3])
         {
-            sql += "user_name,";
+            sql += "name,";
             ++parametersCount;
         }
         if(dirtyFlag_[4])
