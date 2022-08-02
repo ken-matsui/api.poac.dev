@@ -16,11 +16,16 @@
 
 #include <TransformBuilder.h>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 
 namespace drogon::orm {
-template <typename T, bool SelectAll = false>
-class FilterBuilder : public TransformBuilder<T, SelectAll, false> {
+template <typename T, bool SelectAll = false, bool UseUpdate = false>
+class FilterBuilder : public std::conditional_t<
+                          UseUpdate,
+                          // For `UPDATE`, any transforms, such as limit, are prohibited.
+                          BaseBuilder<T, SelectAll, false>,
+                          TransformBuilder<T, SelectAll, false>> {
 public:
   /**
    * @brief A default constructor for derived classes.

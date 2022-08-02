@@ -76,6 +76,7 @@ struct Filter {
 enum class Method {
   Select,
   Insert,
+  Update,
 };
 
 // Forward declaration to be a friend
@@ -187,15 +188,11 @@ private:
       sql += ", " + placeholder();
     }
     sql += ")";
-
     if (returning_) {
-      if (type == ClientType::Mysql) {
-        sql += "; select LAST_INSERT_ID();";
-      } else {
+      if (type != ClientType::Mysql) {
         sql += " returning *";
       }
     }
-
     LOG_TRACE << sql;
     return sql;
   }

@@ -75,8 +75,7 @@ public:
    * @brief Insert values.
    *
    * @param values The values to insert (key: column, value: value)
-   * @param returning Enable returning. For MySQL, SELECT LAST_INSERT_ID() will
-   * be invoked.
+   * @param returning Enable returning. For MySQL, nothing returns.
    *
    * @return BaseBuilder<T, false> A new BaseBuilder.
    *
@@ -95,6 +94,28 @@ public:
     // TODO(ken-matsui): Switch returning. We should change the return type to
     // void.
     return FilterBuilder<T, true>{Method::Insert, getTableName(), values, true};
+  }
+
+  /**
+   * @brief Update values.
+   *
+   * @param values The values to update (key: column, value: value)
+   * @param returning Enable returning. For MySQL, nothing returns.
+   *
+   * @return FilterBuilder<T, true> A new FilterBuilder.
+   */
+  inline FilterBuilder<T, true, true>
+  update(const std::unordered_map<std::string, std::string>& values) const {
+    if (values.empty()) {
+      throw UsageError("The values should not be empty.");
+    }
+
+    for (const auto& value : values) {
+      this->assert_column(value.first);
+    }
+    // TODO(ken-matsui): Switch returning. We should change the return type to
+    // void.
+    return {Method::Update, getTableName(), values, true};
   }
 };
 } // namespace drogon::orm
