@@ -1,6 +1,10 @@
 #pragma once
 
-#include <drogon/HttpController.h>
+// std
+#include <string>
+
+// external
+#include <drogon/HttpController.h> // NOLINT(build/include_order)
 
 using namespace drogon;
 

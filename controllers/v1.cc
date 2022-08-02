@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <utility>
 
 // internal
 #include <QueryBuilder.h>
