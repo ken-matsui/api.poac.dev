@@ -261,15 +261,33 @@ v1::packages(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback
 ) {
-  // Get packages ordered by version (newer first)
-  const std::vector<Package> packages =
-      drogon::orm::QueryBuilder<Package>{}
-          .from("package")
-          .selectAll()
-          .order("name")
-          .order("string_to_array(version, '.')::int[]", false, false)
-          .execSync(drogon::app().getDbClient());
-  callback(poac_api::ok(drogon::orm::toJson(packages)));
+    const std::string filter = req->getParameter("filter");
+    if (filter == "unique") {
+        // Get packages with the latest version
+        const drogon::orm::Result result =
+                drogon::orm::QueryBuilder<Package>{}
+                        .from("package")
+                        .select("distinct on (name) *")
+                        .order("name")
+                        .order("string_to_array(version, '.')::int[]", false, false)
+                        .execSync(drogon::app().getDbClient());
+
+        std::vector<Package> packages;
+        for (const drogon::orm::Row& r : result) {
+            packages.emplace_back(r);
+        }
+        callback(poac_api::ok(drogon::orm::toJson(packages)));
+    } else {
+        // Get packages ordered by version (newer first)
+        const std::vector<Package> packages =
+                drogon::orm::QueryBuilder<Package>{}
+                        .from("package")
+                        .selectAll()
+                        .order("name")
+                        .order("string_to_array(version, '.')::int[]", false, false)
+                        .execSync(drogon::app().getDbClient());
+        callback(poac_api::ok(drogon::orm::toJson(packages)));
+    }
 }
 
 void
