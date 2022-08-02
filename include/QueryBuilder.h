@@ -75,7 +75,8 @@ public:
    * @brief Insert values.
    *
    * @param values The values to insert (key: column, value: value)
-   * @param returning Enable returning. For MySQL, nothing returns.
+   * TODO(ken-matsui): @param returning Enable returning. For MySQL, nothing
+   * returns.
    *
    * @return BaseBuilder<T, false> A new BaseBuilder.
    *
@@ -100,9 +101,10 @@ public:
    * @brief Update values.
    *
    * @param values The values to update (key: column, value: value)
-   * @param returning Enable returning. For MySQL, nothing returns.
+   * TODO(ken-matsui): @param returning Enable returning. For MySQL, nothing
+   * returns.
    *
-   * @return FilterBuilder<T, true> A new FilterBuilder.
+   * @return FilterBuilder<T, true, true> A new FilterBuilder.
    */
   inline FilterBuilder<T, true, true>
   update(const std::unordered_map<std::string, std::string>& values) const {
