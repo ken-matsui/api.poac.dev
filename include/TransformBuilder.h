@@ -39,8 +39,11 @@ public:
    */
   template <bool SI = Single, std::enable_if_t<SI, std::nullptr_t> = nullptr>
   TransformBuilder(const TransformBuilder<T, SelectAll, false>& tb) {
+    this->method_ = tb.method_;
     this->from_ = tb.from_;
     this->columns_ = tb.columns_;
+    this->values_ = tb.values_;
+    this->returning_ = tb.returning_;
     this->filters_ = tb.filters_;
     this->limit_ = tb.limit_;
     this->offset_ = tb.offset_;

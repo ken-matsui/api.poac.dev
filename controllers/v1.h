@@ -8,9 +8,7 @@ class v1 : public drogon::HttpController<v1> {
 public:
   METHOD_LIST_BEGIN
 
-  // Users
-  //  METHOD_ADD(v1::auth_callback, "/auth/callback", Get);
-  //  METHOD_ADD(v1::users_login, "/users/login", Post, "JsonReq");
+  METHOD_ADD(v1::authCallback, "/auth/callback", Get);
 
   METHOD_ADD(v1::deps, "/deps", Post, "JsonReq");
   METHOD_ADD(v1::repoinfo, "/repoinfo", Post, "JsonReq");
@@ -19,11 +17,11 @@ public:
 
   METHOD_LIST_END
 
-  //  static void
-  //  auth_callback(
-  //      const HttpRequestPtr& req,
-  //      std::function<void(const HttpResponsePtr&)>&& callback
-  //  );
+  static void
+  authCallback(
+      const HttpRequestPtr& req,
+      std::function<void(const HttpResponsePtr&)>&& callback
+  );
 
   static void
   deps(

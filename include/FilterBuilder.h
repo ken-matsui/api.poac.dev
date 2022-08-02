@@ -16,9 +16,10 @@
 
 #include <TransformBuilder.h>
 #include <string>
+#include <unordered_map>
 
 namespace drogon::orm {
-template <typename T, bool SelectAll>
+template <typename T, bool SelectAll = false>
 class FilterBuilder : public TransformBuilder<T, SelectAll, false> {
 public:
   /**
@@ -29,16 +30,39 @@ public:
   FilterBuilder() = default;
 
   /**
-   * @brief A copy constructor to be called by QueryBuilder.
+   * @brief A copy constructor to be called by QueryBuilder with `SELECT`.
    *
    * @param from The table.
    * @param columns The columns.
    *
    * @return FilterBuilder The FilterBuilder itself.
    */
-  FilterBuilder(const std::string& from, const std::string& columns) {
+  FilterBuilder(
+      const Method method, const std::string& from, const std::string& columns
+  ) {
+    this->method_ = method;
     this->from_ = from;
     this->columns_ = columns;
+  }
+
+  /**
+   * @brief A copy constructor to be called by QueryBuilder with `INSERT`.
+   *
+   * @param from The table.
+   * @param columns The columns.
+   *
+   * @return FilterBuilder The FilterBuilder itself.
+   */
+  FilterBuilder(
+      const Method method,
+      const std::string& from,
+      const std::unordered_map<std::string, std::string>& values,
+      bool returning
+  ) {
+    this->method_ = method;
+    this->from_ = from;
+    this->values_ = values;
+    this->returning_ = returning;
   }
 
   /**

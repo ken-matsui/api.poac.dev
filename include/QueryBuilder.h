@@ -16,6 +16,7 @@
 
 #include <FilterBuilder.h>
 #include <string>
+#include <unordered_map>
 
 namespace drogon::orm {
 template <typename T>
@@ -56,8 +57,8 @@ public:
    * The method can return rows as model type `T`.
    */
   inline FilterBuilder<T, false>
-  select(const std::string& columns) {
-    return {getTableName(), columns};
+  select(const std::string& columns) const {
+    return {Method::Select, getTableName(), columns};
   }
 
   /**
@@ -66,8 +67,34 @@ public:
    * @return FilterBuilder<T, true> A new FilterBuilder.
    */
   inline FilterBuilder<T, true>
-  selectAll() {
-    return {getTableName(), "*"};
+  selectAll() const {
+    return {Method::Select, getTableName(), "*"};
+  }
+
+  /**
+   * @brief Insert values.
+   *
+   * @param values The values to insert (key: column, value: value)
+   * @param returning Enable returning. For MySQL, SELECT LAST_INSERT_ID() will
+   * be invoked.
+   *
+   * @return BaseBuilder<T, false> A new BaseBuilder.
+   *
+   * @note TODO(ken-matsui): Currently, insert does not support filters &
+   * transforms such as insert into select syntax.
+   */
+  inline BaseBuilder<T, true>
+  insert(const std::unordered_map<std::string, std::string>& values) const {
+    if (values.empty()) {
+      throw UsageError("The values should not be empty.");
+    }
+
+    for (const auto& value : values) {
+      this->assert_column(value.first);
+    }
+    // TODO(ken-matsui): Switch returning. We should change the return type to
+    // void.
+    return FilterBuilder<T, true>{Method::Insert, getTableName(), values, true};
   }
 };
 } // namespace drogon::orm

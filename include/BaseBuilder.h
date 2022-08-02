@@ -22,11 +22,18 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #ifdef __cpp_impl_coroutine
 #  include <drogon/utils/coroutine.h>
+#endif
+
+#ifdef _MSC_VER
+#  define unreachable() __assume(false)
+#else
+#  define unreachable() __builtin_unreachable()
 #endif
 
 #define unimplemented() assert(false && "unimplemented")
@@ -66,6 +73,11 @@ struct Filter {
   std::string value;
 };
 
+enum class Method {
+  Select,
+  Insert,
+};
+
 // Forward declaration to be a friend
 template <typename T, bool SelectAll, bool Single = false>
 class TransformBuilder;
@@ -82,8 +94,11 @@ class BaseBuilder {
   friend class TransformBuilder<T, SelectAll, true>;
 
 protected:
+  Method method_;
   std::string from_;
   std::string columns_;
+  std::unordered_map<std::string, std::string> values_;
+  bool returning_;
   std::vector<Filter> filters_;
   optional<std::uint64_t> limit_;
   optional<std::uint64_t> offset_;
@@ -105,12 +120,12 @@ protected:
 
 private:
   /**
-   * @brief Generate SQL query in string.
+   * @brief Generate SQL query in string for `SELECT`.
    *
    * @return std::string The string generated SQL query.
    */
   inline std::string
-  gen_sql(ClientType type) const {
+  gen_select_sql(ClientType type) const {
     int pCount = 0;
     const auto placeholder = [type, &pCount]() {
       ++pCount;
@@ -141,21 +156,86 @@ private:
     if (offset_.has_value()) {
       sql += " offset " + std::to_string(offset_.value());
     }
+    LOG_TRACE << sql;
     return sql;
+  }
+
+  /**
+   * @brief Generate SQL query in string for `INSERT`.
+   *
+   * @return std::string The string generated SQL query.
+   */
+  inline std::string
+  gen_insert_sql(ClientType type) const {
+    int pCount = 0;
+    const auto placeholder = [type, &pCount]() {
+      ++pCount;
+      return type == ClientType::PostgreSQL ? "$" + std::to_string(pCount)
+                                            : "?";
+    };
+
+    std::string sql = "insert into " + from_ + " (";
+    auto itr = values_.begin();
+    // values_ should not be empty. Skipping validation here.
+    sql += itr->first;
+    ++itr;
+    for (; itr != values_.end(); ++itr) {
+      sql += ", " + itr->first;
+    }
+    sql += ") values (" + placeholder();
+    for (int i = 1; i < values_.size(); ++i) {
+      sql += ", " + placeholder();
+    }
+    sql += ")";
+
+    if (returning_) {
+      if (type == ClientType::Mysql) {
+        sql += "; select LAST_INSERT_ID();";
+      } else {
+        sql += " returning *";
+      }
+    }
+
+    LOG_TRACE << sql;
+    return sql;
+  }
+
+  /**
+   * @brief Generate SQL query in string.
+   *
+   * @return std::string The string generated SQL query.
+   */
+  inline std::string
+  gen_sql(ClientType type) const {
+    switch (method_) {
+      case Method::Select:
+        return gen_select_sql(type);
+      case Method::Insert:
+        return gen_insert_sql(type);
+      default:
+        unreachable();
+    }
   }
 
   inline std::vector<std::string>
   gen_args() const {
     std::vector<std::string> args;
-    if (!filters_.empty()) {
-      for (const Filter& f : filters_) {
-        args.emplace_back(f.value);
-      }
+    switch (method_) {
+      case Method::Select:
+        for (const Filter& f : filters_) {
+          args.emplace_back(f.value);
+        }
+        break;
+      case Method::Insert:
+        for (const auto& value : values_) {
+          args.emplace_back(value.second);
+        }
+      default:
+        unreachable();
     }
     return args;
   }
 
-public:
 #ifdef __cpp_if_constexpr
   static ResultType
   convert_result(const Result& r) {
@@ -220,6 +300,7 @@ public:
   }
 #endif
 
+public:
   inline ResultType
   execSync(const DbClientPtr& client) {
     Result r(nullptr);
