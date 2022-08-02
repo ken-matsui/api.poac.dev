@@ -32,11 +32,11 @@ create policy "Allow all users to SELECT ownerships"
 
 create policy "Allow owners to UPDATE themselves"
     on public.ownerships
-    for update using (
-        auth.uid() = user_id
-    );
+    for update
+        using (auth.uid() = public.ownerships.user_id)
+        with check (auth.uid() = public.ownerships.user_id);
 
-create policy "The last owner should be kept by DELETING"
+create policy "The last owner should be kept from DELETING"
     on public.ownerships
     for delete using (
         (auth.uid() in (
