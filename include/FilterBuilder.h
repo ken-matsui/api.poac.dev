@@ -21,11 +21,12 @@
 
 namespace drogon::orm {
 template <typename T, bool SelectAll = false, bool UseUpdate = false>
-class FilterBuilder : public std::conditional_t<
-                          UseUpdate,
-                          // For `UPDATE`, any transforms, such as limit, are prohibited.
-                          BaseBuilder<T, SelectAll, false>,
-                          TransformBuilder<T, SelectAll, false>> {
+class FilterBuilder
+    : public std::conditional_t<
+          UseUpdate,
+          // For `UPDATE`, any transforms, such as limit, are prohibited.
+          BaseBuilder<T, SelectAll, false>,
+          TransformBuilder<T, SelectAll, false>> {
 public:
   /**
    * @brief A default constructor for derived classes.
