@@ -17,10 +17,10 @@ public:
   METHOD_ADD(v1::packages, "/packages", Get);
 
   METHOD_ADD(v1::owners, "/packages/{name}/owners", Get);
-  METHOD_ADD(v1::owners_org, "/packages/{org}/{name}/owners", Get);
+  METHOD_ADD(v1::ownersOrg, "/packages/{org}/{name}/owners", Get);
 
   METHOD_ADD(v1::dependents, "/packages/{name}/dependents", Get);
-  METHOD_ADD(v1::dependents_org, "/packages/{org}/{name}/dependents", Get);
+  METHOD_ADD(v1::dependentsOrg, "/packages/{org}/{name}/dependents", Get);
 
   METHOD_ADD(v1::deps, "/deps", Post, "JsonReq");
   METHOD_ADD(v1::repoinfo, "/repoinfo", Post, "JsonReq");
@@ -48,7 +48,7 @@ public:
       const std::string& name
   );
   static void
-  owners_org(
+  ownersOrg(
       const HttpRequestPtr& req,
       std::function<void(const HttpResponsePtr&)>&& callback,
       const std::string& org,
@@ -62,7 +62,7 @@ public:
       const std::string& name
   );
   static void
-  dependents_org(
+  dependentsOrg(
       const HttpRequestPtr& req,
       std::function<void(const HttpResponsePtr&)>&& callback,
       const std::string& org,

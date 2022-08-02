@@ -318,7 +318,7 @@ v1::owners(
   callback(poac_api::ok(owners));
 }
 void
-v1::owners_org(
+v1::ownersOrg(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback,
     const std::string& org,
@@ -343,7 +343,7 @@ v1::dependents(
   callback(poac_api::ok(drogon::orm::toJson(packages)));
 }
 void
-v1::dependents_org(
+v1::dependentsOrg(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback,
     const std::string& org,
