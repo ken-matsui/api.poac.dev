@@ -64,7 +64,9 @@ main() {
 
   // Set HTTP listener address and port
   const std::uint16_t port = std::stoi(dotenv::getenv("PORT", "8000"));
-  drogon::app().addListener("0.0.0.0", port);
+  drogon::app()
+      .addListener("0.0.0.0", port)
+      .setLogLevel(trantor::Logger::LogLevel::kTrace);
 
   // Connect to database
   const DbInfo dbInfo = getDbInfo();
