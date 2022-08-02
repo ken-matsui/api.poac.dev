@@ -96,12 +96,16 @@ public:
    *
    * @param column The column to order by.
    * @param asc If `true`, ascending order. If `false`, descending order.
+   * @param enableAssert If `true`, run assert_column. Otherwise, nothing
+   * happens.
    *
    * @return TransformBuilder& The TransformBuilder itself.
    */
   inline TransformBuilder&
-  order(const std::string& column, bool asc = true) {
-    this->assert_column(column);
+  order(const std::string& column, bool asc = true, bool enableAssert = true) {
+    if (enableAssert) {
+      this->assert_column(column);
+    }
     this->orders_.emplace_back(column, asc);
     return *this;
   }

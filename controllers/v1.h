@@ -10,6 +10,7 @@ public:
 
   METHOD_ADD(v1::authCallback, "/auth/callback", Get);
 
+  METHOD_ADD(v1::packages, "/packages", Get);
   METHOD_ADD(v1::deps, "/deps", Post, "JsonReq");
   METHOD_ADD(v1::repoinfo, "/repoinfo", Post, "JsonReq");
   METHOD_ADD(v1::search, "/search", Post, "JsonReq");
@@ -23,6 +24,11 @@ public:
       std::function<void(const HttpResponsePtr&)>&& callback
   );
 
+  static void
+  packages(
+      const HttpRequestPtr& req,
+      std::function<void(const HttpResponsePtr&)>&& callback
+  );
   static void
   deps(
       const HttpRequestPtr& req,

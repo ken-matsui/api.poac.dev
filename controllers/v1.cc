@@ -257,6 +257,22 @@ v1::authCallback(
 }
 
 void
+v1::packages(
+    const HttpRequestPtr& req,
+    std::function<void(const HttpResponsePtr&)>&& callback
+) {
+  // Get packages ordered by version (newer first)
+  const std::vector<Package> packages =
+      drogon::orm::QueryBuilder<Package>{}
+          .from("package")
+          .selectAll()
+          .order("name")
+          .order("string_to_array(version, '.')::int[]", false, false)
+          .execSync(drogon::app().getDbClient());
+  callback(poac_api::ok(drogon::orm::toJson(packages)));
+}
+
+void
 v1::deps(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback
