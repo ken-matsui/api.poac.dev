@@ -22,6 +22,8 @@ public:
   METHOD_ADD(v1::dependents, "/packages/{name}/dependents", Get);
   METHOD_ADD(v1::dependentsOrg, "/packages/{org}/{name}/dependents", Get);
 
+  METHOD_ADD(v1::userPackages, "/users/{userName}/packages", Get);
+
   METHOD_ADD(v1::deps, "/deps", Post, "JsonReq");
   METHOD_ADD(v1::repoinfo, "/repoinfo", Post, "JsonReq");
   METHOD_ADD(v1::search, "/search", Post, "JsonReq");
@@ -67,6 +69,13 @@ public:
       std::function<void(const HttpResponsePtr&)>&& callback,
       const std::string& org,
       const std::string& name
+  );
+
+  static void
+  userPackages(
+      const HttpRequestPtr& req,
+      std::function<void(const HttpResponsePtr&)>&& callback,
+      const std::string& userName
   );
 
   static void
