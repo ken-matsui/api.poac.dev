@@ -19,10 +19,10 @@ create policy "Allow all users to SELECT themselves"
     );
 
 create policy "Allow users to UPDATE themselves"
-	on public.users
-	for update using (
-        auth.uid() = id
-    );
+    on public.users
+    for update
+        using (auth.uid() = public.users.id)
+	with check (auth.uid() = public.users.id);
 
 -- Create functions
 
