@@ -6,6 +6,15 @@
 #include <dotenv.h> // NOLINT(build/include_order)
 #include <drogon/drogon.h> // NOLINT(build/include_order)
 
+struct DbInfo {
+  std::string dbType = "postgresql";
+  std::string userName;
+  std::string password;
+  std::string host;
+  std::uint16_t port = 5432;
+  std::string databaseName;
+};
+
 inline std::string
 getEnv(const std::string& name) {
   if (const char* env_p = std::getenv(name.c_str())) {
@@ -16,9 +25,37 @@ getEnv(const std::string& name) {
   std::exit(EXIT_FAILURE);
 }
 
-inline std::string
-getDbPassword() {
-  return dotenv::getenv("POAC_API_DB_PASSWORD", "");
+DbInfo
+getDbInfo() {
+  DbInfo dbInfo;
+
+  const std::string url = getEnv("DATABASE_URL");
+  std::size_t prev_pos = url.find("://");
+  prev_pos += 3; // `://`
+
+  std::size_t cur_pos = url.find(':', prev_pos);
+  dbInfo.userName = url.substr(prev_pos, cur_pos - prev_pos);
+  LOG_DEBUG << "userName: " << dbInfo.userName;
+  prev_pos = cur_pos + 1; // `:`
+
+  cur_pos = url.find('@', prev_pos);
+  dbInfo.password = url.substr(prev_pos, cur_pos - prev_pos);
+  LOG_DEBUG << "password: " << dbInfo.password;
+  prev_pos = cur_pos + 1; // `@`
+
+  cur_pos = url.find(':', prev_pos);
+  dbInfo.host = url.substr(prev_pos, cur_pos - prev_pos);
+  LOG_DEBUG << "host: " << dbInfo.host;
+  prev_pos = cur_pos + 1; // `:`
+
+  cur_pos = url.find('/', prev_pos);
+  dbInfo.port = std::stoi(url.substr(prev_pos, cur_pos - prev_pos));
+  LOG_DEBUG << "port: " << dbInfo.port;
+  prev_pos = cur_pos + 1; // `/`
+
+  dbInfo.databaseName = url.substr(prev_pos);
+  LOG_DEBUG << "databaseName: " << dbInfo.databaseName;
+  return dbInfo;
 }
 
 int
@@ -30,10 +67,10 @@ main() {
   drogon::app().addListener("0.0.0.0", port);
 
   // Connect to database
+  const DbInfo dbInfo = getDbInfo();
   drogon::app().createDbClient(
-      "postgresql", getEnv("POAC_API_DB_HOST"),
-      std::stoi(getEnv("POAC_API_DB_PORT")), getEnv("POAC_API_DB_DATABASE"),
-      getEnv("POAC_API_DB_USER"), getDbPassword()
+      dbInfo.dbType, dbInfo.host, dbInfo.port, dbInfo.databaseName,
+      dbInfo.userName, dbInfo.password
   );
 
   // Load config file
