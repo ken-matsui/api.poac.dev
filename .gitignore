@@ -564,3 +564,5 @@ build
 
 .env*
 !.env.example
+
+*.sql
