@@ -82,7 +82,7 @@ public:
   inline FilterBuilder&
   eq(const std::string& column, const std::string& value) {
     this->assert_column(column);
-    this->filters_.push_back({column, CompareOperator::EQ, value});
+    this->filters_.push_back({column, Op::eq, value});
     return *this;
   }
 
@@ -97,7 +97,7 @@ public:
   inline FilterBuilder&
   neq(const std::string& column, const std::string& value) {
     this->assert_column(column);
-    this->filters_.push_back({column, CompareOperator::NE, value});
+    this->filters_.push_back({column, Op::neq, value});
     return *this;
   }
 
@@ -112,7 +112,7 @@ public:
   inline FilterBuilder&
   gt(const std::string& column, const std::string& value) {
     this->assert_column(column);
-    this->filters_.push_back({column, CompareOperator::GT, value});
+    this->filters_.push_back({column, Op::gte, value});
     return *this;
   }
 
@@ -127,7 +127,7 @@ public:
   inline FilterBuilder&
   gte(const std::string& column, const std::string& value) {
     this->assert_column(column);
-    this->filters_.push_back({column, CompareOperator::GE, value});
+    this->filters_.push_back({column, Op::gte, value});
     return *this;
   }
 
@@ -142,7 +142,7 @@ public:
   inline FilterBuilder&
   lt(const std::string& column, const std::string& value) {
     this->assert_column(column);
-    this->filters_.push_back({column, CompareOperator::LT, value});
+    this->filters_.push_back({column, Op::lt, value});
     return *this;
   }
 
@@ -157,7 +157,7 @@ public:
   inline FilterBuilder&
   lte(const std::string& column, const std::string& value) {
     this->assert_column(column);
-    this->filters_.push_back({column, CompareOperator::LE, value});
+    this->filters_.push_back({column, Op::lte, value});
     return *this;
   }
 
@@ -172,7 +172,28 @@ public:
   inline FilterBuilder&
   like(const std::string& column, const std::string& pattern) {
     this->assert_column(column);
-    this->filters_.push_back({column, CompareOperator::Like, pattern});
+    this->filters_.push_back({column, Op::like, pattern});
+    return *this;
+  }
+
+  /**
+   * @brief Filter rows whose json contains the `value`.
+   *
+   * @param column The column to be filtered.
+   * @param value The value to filter rows.
+   * @param enableAssert If `true`, run assert_column. Otherwise, nothing
+   * happens.
+   *
+   * @return FilterBuilder& The FilterBuilder itself.
+   */
+  inline FilterBuilder&
+  qm(const std::string& column,
+     const std::string& value,
+     bool enableAssert = true) {
+    if (enableAssert) {
+      this->assert_column(column);
+    }
+    this->filters_.push_back({column, Op::qm, value});
     return *this;
   }
 };

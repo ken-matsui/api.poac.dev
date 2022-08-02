@@ -14,7 +14,6 @@
 
 #pragma once
 
-#include <drogon/orm/Criteria.h>
 #include <drogon/orm/DbClient.h>
 #include <drogon/utils/optional.h>
 #include <drogon/utils/string_view.h>
@@ -36,40 +35,53 @@
 #  define unreachable() __builtin_unreachable()
 #endif
 
-#define unimplemented() assert(false && "unimplemented")
-
 namespace drogon::orm {
+enum class Op {
+  /// =
+  eq,
+  /// !=
+  neq,
+  /// >
+  gt,
+  /// >=
+  gte,
+  /// <
+  lt,
+  /// <=
+  lte,
+  /// like
+  like,
+  /// ? (PostgreSQL)
+  qm,
+};
+
 inline std::string
-to_string(CompareOperator op) {
+to_string(Op op) {
   switch (op) {
-    case CompareOperator::EQ:
+    case Op::eq:
       return "=";
-    case CompareOperator::NE:
+    case Op::neq:
       return "!=";
-    case CompareOperator::GT:
+    case Op::gt:
       return ">";
-    case CompareOperator::GE:
+    case Op::gte:
       return ">=";
-    case CompareOperator::LT:
+    case Op::lt:
       return "<";
-    case CompareOperator::LE:
+    case Op::lte:
       return "<=";
-    case CompareOperator::Like:
+    case Op::like:
       return "like";
-    case CompareOperator::NotLike:
-    case CompareOperator::In:
-    case CompareOperator::NotIn:
-    case CompareOperator::IsNull:
-    case CompareOperator::IsNotNull:
+    case Op::qm:
+      return "?";
     default:
-      unimplemented();
-      return "";
+      unreachable();
   }
 }
 
 struct Filter {
   std::string column;
-  CompareOperator op;
+  Op op;
   std::string value;
 };
 
