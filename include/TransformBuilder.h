@@ -147,6 +147,9 @@ public:
    * @param expr The expression.
    *
    * @return TransformBuilder& The TransformBuilder itself.
+   *
+   * @note Do not pass data that users send. This bypasses the protection for
+   * SQL injections.
    */
   inline TransformBuilder&
   custom_no_val(const std::string& expr) {
