@@ -73,7 +73,8 @@ class TransformBuilder;
 template <typename T, bool SelectAll, bool Single = false>
 class BaseBuilder {
   using ResultType = std::conditional_t<
-      SelectAll, std::conditional_t<Single, T, std::vector<T>>,
+      SelectAll,
+      std::conditional_t<Single, T, std::vector<T>>,
       std::conditional_t<Single, Row, Result>>;
 
   // Make the constructor of `TransformBuilder<T, SelectAll, true>` through
@@ -178,7 +179,8 @@ public:
   }
 #else
   template <
-      bool SA = SelectAll, bool SI = Single,
+      bool SA = SelectAll,
+      bool SI = Single,
       std::enable_if_t<SA, std::nullptr_t> = nullptr,
       std::enable_if_t<SI, std::nullptr_t> = nullptr>
   static inline T
@@ -186,7 +188,8 @@ public:
     return T(r[0]);
   }
   template <
-      bool SA = SelectAll, bool SI = Single,
+      bool SA = SelectAll,
+      bool SI = Single,
       std::enable_if_t<SA, std::nullptr_t> = nullptr,
       std::enable_if_t<!SI, std::nullptr_t> = nullptr>
   static inline std::vector<T>
@@ -198,7 +201,8 @@ public:
     return ret;
   }
   template <
-      bool SA = SelectAll, bool SI = Single,
+      bool SA = SelectAll,
+      bool SI = Single,
       std::enable_if_t<!SA, std::nullptr_t> = nullptr,
       std::enable_if_t<SI, std::nullptr_t> = nullptr>
   static inline Row
@@ -206,7 +210,8 @@ public:
     return r[0];
   }
   template <
-      bool SA = SelectAll, bool SI = Single,
+      bool SA = SelectAll,
+      bool SI = Single,
       std::enable_if_t<!SA, std::nullptr_t> = nullptr,
       std::enable_if_t<!SI, std::nullptr_t> = nullptr>
   static inline Result

@@ -69,8 +69,12 @@ main() {
   // Connect to database
   const DbInfo dbInfo = getDbInfo();
   drogon::app().createDbClient(
-      dbInfo.dbType, dbInfo.host, dbInfo.port, dbInfo.databaseName,
-      dbInfo.userName, dbInfo.password
+      dbInfo.dbType,
+      dbInfo.host,
+      dbInfo.port,
+      dbInfo.databaseName,
+      dbInfo.userName,
+      dbInfo.password
   );
 
   // Load config file

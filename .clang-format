@@ -7,6 +7,8 @@ AlignTrailingComments: false
 AlwaysBreakAfterReturnType: All
 AlwaysBreakBeforeMultilineStrings: true
 AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
+BinPackParameters: false
 BreakBeforeBinaryOperators: NonAssignment
 BreakStringLiterals: false
 IncludeBlocks: Regroup

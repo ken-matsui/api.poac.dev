@@ -16,7 +16,8 @@ public:
 
   void
   doFilter(
-      const HttpRequestPtr& req, FilterCallback&& fcb,
+      const HttpRequestPtr& req,
+      FilterCallback&& fcb,
       FilterChainCallback&& fccb
   ) override;
 };
