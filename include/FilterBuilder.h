@@ -76,12 +76,18 @@ public:
    *
    * @param column The column to be filtered.
    * @param value The value to filter rows.
+   * @param enableAssert If `true`, run assert_column. Otherwise, nothing
+   * happens.
    *
    * @return FilterBuilder& The FilterBuilder itself.
    */
   inline FilterBuilder&
-  eq(const std::string& column, const std::string& value) {
-    this->assert_column(column);
+  eq(const std::string& column,
+     const std::string& value,
+     bool enableAssert = true) {
+    if (enableAssert) {
+      this->assert_column(column);
+    }
     this->filters_.push_back({column, Op::eq, value});
     return *this;
   }

@@ -16,6 +16,9 @@ public:
 
   METHOD_ADD(v1::packages, "/packages", Get);
 
+  METHOD_ADD(v1::owners, "/packages/{name}/owners", Get);
+  METHOD_ADD(v1::owners_org, "/packages/{org}/{name}/owners", Get);
+
   METHOD_ADD(v1::dependents, "/packages/{name}/dependents", Get);
   METHOD_ADD(v1::dependents_org, "/packages/{org}/{name}/dependents", Get);
 
@@ -36,6 +39,20 @@ public:
   packages(
       const HttpRequestPtr& req,
       std::function<void(const HttpResponsePtr&)>&& callback
+  );
+
+  static void
+  owners(
+      const HttpRequestPtr& req,
+      std::function<void(const HttpResponsePtr&)>&& callback,
+      const std::string& name
+  );
+  static void
+  owners_org(
+      const HttpRequestPtr& req,
+      std::function<void(const HttpResponsePtr&)>&& callback,
+      const std::string& org,
+      const std::string& name
   );
 
   static void

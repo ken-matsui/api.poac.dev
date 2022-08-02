@@ -3,8 +3,8 @@
 // std
 #include <optional>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 // internal
 #include <QueryBuilder.h>
@@ -292,6 +292,42 @@ v1::packages(
 }
 
 void
+v1::owners(
+    const HttpRequestPtr& req,
+    std::function<void(const HttpResponsePtr&)>&& callback,
+    const std::string& name
+) {
+  // Get dependents of given package name
+  const drogon::orm::Result result =
+      drogon::orm::QueryBuilder<User>{}
+          .from("public.user u")
+          .select("u.id as id, name, user_name, avatar_url")
+          .custom("left join ownership o on o.package_name = $1", name)
+          .custom_no_val("where o.user_id = u.id")
+          .execSync(drogon::app().getDbClient());
+
+  Json::Value owners(Json::arrayValue);
+  for (const drogon::orm::Row& row : result) {
+    Json::Value owner(Json::objectValue);
+    owner["id"] = row["id"].as<std::string>();
+    owner["name"] = row["name"].as<std::string>();
+    owner["user_name"] = row["user_name"].as<std::string>();
+    owner["avatar_url"] = row["avatar_url"].as<std::string>();
+    owners.append(owner);
+  }
+  callback(poac_api::ok(owners));
+}
+void
+v1::owners_org(
+    const HttpRequestPtr& req,
+    std::function<void(const HttpResponsePtr&)>&& callback,
+    const std::string& org,
+    const std::string& name
+) {
+  owners(req, std::move(callback), org + "/" + name);
+}
+
+void
 v1::dependents(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback,
@@ -306,7 +342,6 @@ v1::dependents(
           .execSync(drogon::app().getDbClient());
   callback(poac_api::ok(drogon::orm::toJson(packages)));
 }
-
 void
 v1::dependents_org(
     const HttpRequestPtr& req,

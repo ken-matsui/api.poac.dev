@@ -48,6 +48,7 @@ public:
     this->limit_ = tb.limit_;
     this->offset_ = tb.offset_;
     this->orders_ = tb.orders_;
+    this->customs_ = tb.customs_;
   }
 
   /**
@@ -123,6 +124,34 @@ public:
   inline TransformBuilder<T, SelectAll, true>
   single() const {
     return {*this};
+  }
+
+  /**
+   * @brief Custom transform.
+   *
+   * @param expr The expression (e.g. left join ownerships o on o.package_name
+   * = $1). These custom placeholders are prioritized.
+   * @param value The value for the placeholder
+   *
+   * @return TransformBuilder& The TransformBuilder itself.
+   */
+  inline TransformBuilder&
+  custom(const std::string& expr, const std::string& value) {
+    this->customs_.emplace_back(expr, value);
+    return *this;
+  }
+
+  /**
+   * @brief Custom transform without value.
+   *
+   * @param expr The expression.
+   *
+   * @return TransformBuilder& The TransformBuilder itself.
+   */
+  inline TransformBuilder&
+  custom_no_val(const std::string& expr) {
+    this->customs_.emplace_back(expr, "");
+    return *this;
   }
 };
 } // namespace drogon::orm

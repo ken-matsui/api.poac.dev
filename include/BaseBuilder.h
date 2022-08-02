@@ -118,6 +118,8 @@ protected:
   // The order is important; use vector<pair> instead of unordered_map and
   // map.
   std::vector<std::pair<std::string, bool>> orders_;
+  // Keep the order for user-defined placeholders.
+  std::vector<std::pair<std::string, std::string>> customs_;
 
   inline void
   assert_column(const std::string& colName) const {
@@ -147,6 +149,20 @@ private:
     };
 
     std::string sql = "select " + columns_ + " from " + from_;
+
+    // Prioritize the custom transforms.
+    if (!customs_.empty()) {
+      for (const auto& [expr, val] : customs_) {
+        sql += " " + expr;
+        // val is empty means no value is provided.
+        if (!val.empty()) {
+          // Increment the placeholder count because of user-defined
+          // placeholders.
+          ++pCount;
+        }
+      }
+    }
+
     if (!filters_.empty()) {
       sql += " where " + filters_[0].column + " " + to_string(filters_[0].op)
              + " " + placeholder();
@@ -277,6 +293,13 @@ private:
     std::vector<std::string> args;
     switch (method_) {
       case Method::Select:
+        // Prioritize the custom transforms.
+        for (const auto& c : customs_) {
+          // val is empty means no value is provided.
+          if (!c.second.empty()) {
+            args.emplace_back(c.second);
+          }
+        }
         for (const Filter& f : filters_) {
           args.emplace_back(f.value);
         }
