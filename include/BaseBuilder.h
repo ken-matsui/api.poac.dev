@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <drogon/orm/Criteria.h>
 #include <drogon/orm/DbClient.h>
 #include <drogon/utils/optional.h>
 #include <drogon/utils/string_view.h>
@@ -28,7 +29,43 @@
 #  include <drogon/utils/coroutine.h>
 #endif
 
+#define unimplemented() assert(false && "unimplemented")
+
 namespace drogon::orm {
+inline std::string
+to_string(CompareOperator op) {
+  switch (op) {
+    case CompareOperator::EQ:
+      return "=";
+    case CompareOperator::NE:
+      return "!=";
+    case CompareOperator::GT:
+      return ">";
+    case CompareOperator::GE:
+      return ">=";
+    case CompareOperator::LT:
+      return "<";
+    case CompareOperator::LE:
+      return "<=";
+    case CompareOperator::Like:
+      return "like";
+    case CompareOperator::NotLike:
+    case CompareOperator::In:
+    case CompareOperator::NotIn:
+    case CompareOperator::IsNull:
+    case CompareOperator::IsNotNull:
+    default:
+      unimplemented();
+      return "";
+  }
+}
+
+struct Filter {
+  std::string column;
+  CompareOperator op;
+  std::string value;
+};
+
 // Forward declaration to be a friend
 template <typename T, bool SelectAll, bool Single = false>
 class TransformBuilder;
@@ -39,32 +76,54 @@ class BaseBuilder {
       SelectAll, std::conditional_t<Single, T, std::vector<T>>,
       std::conditional_t<Single, Row, Result>>;
 
-protected:
   // Make the constructor of `TransformBuilder<T, SelectAll, true>` through
   // `TransformBuilder::single()` be able to read these protected members.
   friend class TransformBuilder<T, SelectAll, true>;
 
+protected:
   std::string from_;
   std::string columns_;
-  std::vector<std::string> filters_;
+  std::vector<Filter> filters_;
   optional<std::uint64_t> limit_;
   optional<std::uint64_t> offset_;
   // The order is important; use vector<pair> instead of unordered_map and
   // map.
   std::vector<std::pair<std::string, bool>> orders_;
 
+  inline void
+  assert_column(const std::string& colName) const {
+    for (const typename T::MetaData& m : T::metaData_) {
+      if (m.colName_ == colName) {
+        return;
+      }
+    }
+    throw UsageError(
+        "The column `" + colName + "` is not in the specified table."
+    );
+  }
+
+private:
   /**
    * @brief Generate SQL query in string.
    *
    * @return std::string The string generated SQL query.
    */
   inline std::string
-  to_string() const {
+  gen_sql(ClientType type) const {
+    int pCount = 0;
+    const auto placeholder = [type, &pCount]() {
+      ++pCount;
+      return type == ClientType::PostgreSQL ? "$" + std::to_string(pCount)
+                                            : "?";
+    };
+
     std::string sql = "select " + columns_ + " from " + from_;
     if (!filters_.empty()) {
-      sql += " where " + filters_[0];
+      sql += " where " + filters_[0].column + " " + to_string(filters_[0].op)
+             + " " + placeholder() + "";
       for (int i = 1; i < filters_.size(); ++i) {
-        sql += " and " + filters_[i];
+        sql += " and " + filters_[i].column + " " + to_string(filters_[i].op)
+               + " " + placeholder() + "";
       }
     }
     if (!orders_.empty()) {
@@ -82,6 +141,17 @@ protected:
       sql += " offset " + std::to_string(offset_.value());
     }
     return sql;
+  }
+
+  inline std::vector<std::string>
+  gen_args() const {
+    std::vector<std::string> args;
+    if (!filters_.empty()) {
+      for (const Filter& f : filters_) {
+        args.emplace_back(f.value);
+      }
+    }
+    return args;
   }
 
 public:
@@ -149,7 +219,10 @@ public:
   execSync(const DbClientPtr& client) {
     Result r(nullptr);
     {
-      auto binder = *client << to_string();
+      auto binder = *client << gen_sql(client->type());
+      for (const std::string& a : gen_args()) {
+        binder << a;
+      }
       binder << Mode::Blocking;
       binder >> [&r](const Result& result) { r = result; };
       binder.exec(); // exec may throw exception
@@ -159,7 +232,10 @@ public:
 
   std::future<ResultType>
   execAsync(const DbClientPtr& client) {
-    auto binder = *client << to_string();
+    auto binder = *client << gen_sql(client->type());
+    for (const std::string& a : gen_args()) {
+      binder << a;
+    }
     std::shared_ptr<std::promise<ResultType>> prom =
         std::make_shared<std::promise<ResultType>>();
     binder >> [prom](const Result& r) { prom->set_value(convert_result(r)); };
@@ -187,26 +263,38 @@ public:
 
   private:
     internal::SqlBinder binder_;
+    optional<ResultType> result_;
     std::exception_ptr exception_{nullptr};
 
   protected:
     /**
-     * @note This is needed to be explicitly declared to suppress the following
-     * error: there are no arguments to 'setException' that depend on a
-     * template parameter, so a declaration of 'setException' must be available
+     * @note This is needed to be explicitly declared to suppress the
+     * following error: there are no arguments to 'setException' that depend
+     * on a template parameter, so a declaration of 'setException' must be
+     * available
      */
     void
     setException(const std::exception_ptr& e) {
       exception_ = e;
     }
+    void
+    setValue(const ResultType& v) {
+      result_.emplace(v);
+    }
+    void
+    setValue(ResultType&& v) {
+      result_.emplace(std::move(v));
+    }
   };
 
   inline BuilderAwaiter
   execCoro(const DbClientPtr& client) {
-    auto binder = *client << to_string();
+    auto binder = *client << gen_sql(client->type());
+    for (const std::string& a : gen_args()) {
+      binder << a;
+    }
     return {std::move(binder)};
   }
 #endif
 };
-
 } // namespace drogon::orm

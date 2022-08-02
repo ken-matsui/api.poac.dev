@@ -30,8 +30,8 @@ public:
   TransformBuilder() = default;
 
   /**
-   * @brief A copy constructor from a non `Single` builder to `Single` builder,
-   * used by the `single` method.
+   * @brief A copy constructor from a non `Single` builder to `Single`
+   * builder, used by the `single` method.
    *
    * @return TransformBuilder The TransformBuilder itself.
    *
@@ -98,6 +98,7 @@ public:
    */
   inline TransformBuilder&
   order(const std::string& column, bool asc = true) {
+    this->assert_column(column);
     this->orders_.emplace_back(column, asc);
     return *this;
   }
@@ -117,5 +118,4 @@ public:
     return {*this};
   }
 };
-
 } // namespace drogon::orm

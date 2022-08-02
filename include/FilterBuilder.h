@@ -15,7 +15,6 @@
 #pragma once
 
 #include <TransformBuilder.h>
-#include <drogon/utils/string_view.h>
 #include <string>
 
 namespace drogon::orm {
@@ -32,11 +31,14 @@ public:
   /**
    * @brief A copy constructor to be called by QueryBuilder.
    *
+   * @param from The table.
+   * @param columns The columns.
+   *
    * @return FilterBuilder The FilterBuilder itself.
    */
-  FilterBuilder(drogon::string_view from, drogon::string_view column) {
+  FilterBuilder(const std::string& from, const std::string& columns) {
     this->from_ = from;
-    this->columns_ = column;
+    this->columns_ = columns;
   }
 
   /**
@@ -49,7 +51,8 @@ public:
    */
   inline FilterBuilder&
   eq(const std::string& column, const std::string& value) {
-    this->filters_.emplace_back(column + " = '" + value + "'");
+    this->assert_column(column);
+    this->filters_.push_back({column, CompareOperator::EQ, value});
     return *this;
   }
 
@@ -63,7 +66,8 @@ public:
    */
   inline FilterBuilder&
   neq(const std::string& column, const std::string& value) {
-    this->filters_.emplace_back(column + " != '" + value + "'");
+    this->assert_column(column);
+    this->filters_.push_back({column, CompareOperator::NE, value});
     return *this;
   }
 
@@ -77,7 +81,8 @@ public:
    */
   inline FilterBuilder&
   gt(const std::string& column, const std::string& value) {
-    this->filters_.emplace_back(column + " > '" + value + "'");
+    this->assert_column(column);
+    this->filters_.push_back({column, CompareOperator::GT, value});
     return *this;
   }
 
@@ -91,7 +96,8 @@ public:
    */
   inline FilterBuilder&
   gte(const std::string& column, const std::string& value) {
-    this->filters_.emplace_back(column + " >= '" + value + "'");
+    this->assert_column(column);
+    this->filters_.push_back({column, CompareOperator::GE, value});
     return *this;
   }
 
@@ -105,7 +111,8 @@ public:
    */
   inline FilterBuilder&
   lt(const std::string& column, const std::string& value) {
-    this->filters_.emplace_back(column + " < '" + value + "'");
+    this->assert_column(column);
+    this->filters_.push_back({column, CompareOperator::LT, value});
     return *this;
   }
 
@@ -119,7 +126,8 @@ public:
    */
   inline FilterBuilder&
   lte(const std::string& column, const std::string& value) {
-    this->filters_.emplace_back(column + " <= '" + value + "'");
+    this->assert_column(column);
+    this->filters_.push_back({column, CompareOperator::LE, value});
     return *this;
   }
 
@@ -133,9 +141,9 @@ public:
    */
   inline FilterBuilder&
   like(const std::string& column, const std::string& pattern) {
-    this->filters_.emplace_back(column + " like '" + pattern + "'");
+    this->assert_column(column);
+    this->filters_.push_back({column, CompareOperator::Like, pattern});
     return *this;
   }
 };
-
 } // namespace drogon::orm
