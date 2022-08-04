@@ -152,7 +152,7 @@ public:
    * SQL injections.
    */
   inline TransformBuilder&
-  custom_no_val(const std::string& expr) {
+  custom(const std::string& expr) {
     this->customs_.emplace_back(expr, "");
     return *this;
   }

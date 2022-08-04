@@ -303,7 +303,7 @@ v1::owners(
           .from("public.user u")
           .select("u.id as id, name, user_name, avatar_url")
           .custom("left join ownership o on o.package_name = $1", name)
-          .custom_no_val("where o.user_id = u.id")
+          .custom("where o.user_id = u.id")
           .execSync(drogon::app().getDbClient());
 
   Json::Value owners(Json::arrayValue);
@@ -364,8 +364,8 @@ v1::userPackages(
           .from("package p")
           .select("distinct on (name) p.*")
           .eq("u.user_name", userName, false)
-          .custom_no_val("left join ownership o on o.package_name = p.name")
-          .custom_no_val("left join public.user u on u.id = o.user_id")
+          .custom("left join ownership o on o.package_name = p.name")
+          .custom("left join public.user u on u.id = o.user_id")
           .order("p.name", true, false)
           .order("string_to_array(p.version, '.')::int[]", false, false)
           .execSync(drogon::app().getDbClient());
