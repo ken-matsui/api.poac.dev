@@ -459,10 +459,10 @@ v1::search(
   }
 
   // SQL query
-  auto sqlQuery =
-      drogon::orm::QueryBuilder<Package>{}.from("packages").selectAll().like(
-          "name", "%" + query.asString() + "%"
-      );
+  auto sqlQuery = drogon::orm::QueryBuilder<Package>{}
+                      .from("packages")
+                      .selectAll()
+                      .like("name", "%" + query.asString() + "%");
   if (perPage.asUInt() != 0) {
     sqlQuery.limit(perPage.asInt64());
   }
