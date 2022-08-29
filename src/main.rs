@@ -1,11 +1,18 @@
 mod models;
 mod schema;
 
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{get, middleware::Logger, web, App, Error, HttpResponse, HttpServer};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use dotenvy::dotenv;
 use std::env;
+
+type DbPool = Pool<ConnectionManager<PgConnection>>;
+
+#[get("/v1/packages")]
+async fn packages(pool: web::Data<DbPool>) -> Result<HttpResponse, Error> {
+    Ok(HttpResponse::Ok().body("Hello world!"))
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -27,8 +34,7 @@ async fn main() -> std::io::Result<()> {
             // set up DB pool to be used with web::Data<Pool> extractor
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
-        // .service(get_user)
-        // .service(add_user)
+            .service(packages)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

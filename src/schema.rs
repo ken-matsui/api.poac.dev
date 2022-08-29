@@ -8,7 +8,7 @@ diesel::table! {
         name -> Text,
         version -> Text,
         edition -> Int2,
-        authors -> Array<Nullable<Text>>,
+        authors -> Array<Text>,
         repository -> Text,
         description -> Text,
         license -> Text,
