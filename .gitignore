@@ -566,3 +566,4 @@ build
 !.env.example
 
 *.sql
+!migrations/*.sql
