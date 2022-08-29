@@ -1,4 +1,4 @@
-create table public.package (
+create table public.packages (
     id uuid primary key default uuid_generate_v4(),
     published_at timestamptz not null default now(),
     metadata jsonb not null unique,

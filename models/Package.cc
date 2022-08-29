@@ -27,7 +27,7 @@ const std::string Package::Cols::_readme = "readme";
 const std::string Package::Cols::_sha256sum = "sha256sum";
 const std::string Package::primaryKeyName = "id";
 const bool Package::hasPrimaryKey = true;
-const std::string Package::tableName = "package";
+const std::string Package::tableName = "packages";
 
 const std::vector<typename Package::MetaData> Package::metaData_={
 {"id","std::string","uuid",0,0,1,1},

@@ -267,7 +267,7 @@ v1::packages(
     // Get packages with the latest version
     const drogon::orm::Result result =
         drogon::orm::QueryBuilder<Package>{}
-            .from("package")
+            .from("packages")
             .select("distinct on (name) *")
             .order("name")
             .order("string_to_array(version, '.')::int[]", false, false)
@@ -282,7 +282,7 @@ v1::packages(
     // Get packages ordered by version (newer first)
     const std::vector<Package> packages =
         drogon::orm::QueryBuilder<Package>{}
-            .from("package")
+            .from("packages")
             .selectAll()
             .order("name")
             .order("string_to_array(version, '.')::int[]", false, false)
@@ -336,7 +336,7 @@ v1::dependents(
   // Get dependents of given package name
   const std::vector<Package> packages =
       drogon::orm::QueryBuilder<Package>{}
-          .from("package")
+          .from("packages")
           .selectAll()
           .qm("metadata->'dependencies'", name, false)
           .execSync(drogon::app().getDbClient());
@@ -394,7 +394,7 @@ v1::deps(
 
   const drogon::orm::Row result =
       drogon::orm::QueryBuilder<Package>{}
-          .from("package")
+          .from("packages")
           .select("metadata->'dependencies' as dependencies")
           .eq("name", name.asString())
           .eq("version", version.asString())
@@ -424,7 +424,7 @@ v1::repoinfo(
   }
 
   const drogon::orm::Row result = drogon::orm::QueryBuilder<Package>{}
-                                      .from("package")
+                                      .from("packages")
                                       .select("repository, sha256sum")
                                       .eq("name", name.asString())
                                       .eq("version", version.asString())
@@ -460,7 +460,7 @@ v1::search(
 
   // SQL query
   auto sqlQuery =
-      drogon::orm::QueryBuilder<Package>{}.from("package").selectAll().like(
+      drogon::orm::QueryBuilder<Package>{}.from("packages").selectAll().like(
           "name", "%" + query.asString() + "%"
       );
   if (perPage.asUInt() != 0) {
@@ -486,7 +486,7 @@ v1::versions(
   }
 
   const drogon::orm::Result result = drogon::orm::QueryBuilder<Package>{}
-                                         .from("package")
+                                         .from("packages")
                                          .select("version")
                                          .eq("name", name.asString())
                                          .execSync(drogon::app().getDbClient());
