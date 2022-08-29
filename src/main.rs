@@ -54,9 +54,8 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to create pool.");
 
     let port = env::var("PORT")
-        .unwrap_or("8000".to_string())
-        .parse::<u16>()
-        .expect("Failed to parse PORT as u16");
+        .map(|port| port.parse::<u16>().expect("Failed to parse PORT as u16"))
+        .unwrap_or(8000);
     log::info!("starting HTTP server at http://localhost:{}", port);
 
     // Start HTTP server
