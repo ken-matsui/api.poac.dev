@@ -1,5 +1,9 @@
 use chrono::NaiveDateTime;
+use diesel::debug_query;
+use diesel::dsl::sql;
+use diesel::pg::Pg;
 use diesel::prelude::*;
+use diesel::sql_types::Text;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -25,8 +29,13 @@ impl Package {
     pub(crate) fn find_all(conn: &mut PgConnection) -> Result<Vec<Self>, DbError> {
         use crate::schema::packages::dsl::*;
 
-        let results = packages.load::<Self>(conn)?;
+        let query = packages
+            .order(name)
+            .order(sql::<Text>("string_to_array(version, '.')::int[]"));
 
+        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+
+        let results = query.load::<Self>(conn)?;
         Ok(results)
     }
 

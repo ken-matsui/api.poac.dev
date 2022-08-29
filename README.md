@@ -1,5 +1,5 @@
 # api.poac.pm
 
 ```shell
-$ cargo run
+$ RUST_LOG=debug cargo run
 ```
