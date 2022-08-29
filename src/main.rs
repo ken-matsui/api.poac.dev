@@ -53,7 +53,11 @@ async fn main() -> std::io::Result<()> {
         .build(manager)
         .expect("Failed to create pool.");
 
-    log::info!("starting HTTP server at http://localhost:8080");
+    let port = env::var("PORT")
+        .unwrap_or("8000".to_string())
+        .parse::<u16>()
+        .expect("Failed to parse PORT as u16");
+    log::info!("starting HTTP server at http://localhost:{}", port);
 
     // Start HTTP server
     HttpServer::new(move || {
@@ -64,7 +68,7 @@ async fn main() -> std::io::Result<()> {
             .service(packages)
             .service(search)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", port))?
     .run()
     .await
 }
