@@ -14,8 +14,6 @@ public:
 
   METHOD_ADD(v1::authCallback, "/auth/callback", Get);
 
-  METHOD_ADD(v1::packages, "/packages", Get);
-
   METHOD_ADD(v1::owners, "/packages/{name}/owners", Get);
   METHOD_ADD(v1::ownersOrg, "/packages/{org}/{name}/owners", Get);
 
@@ -33,12 +31,6 @@ public:
 
   static void
   authCallback(
-      const HttpRequestPtr& req,
-      std::function<void(const HttpResponsePtr&)>&& callback
-  );
-
-  static void
-  packages(
       const HttpRequestPtr& req,
       std::function<void(const HttpResponsePtr&)>&& callback
   );

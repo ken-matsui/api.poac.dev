@@ -33,6 +33,7 @@ impl Package {
         use crate::schema::packages::dsl::*;
 
         if filter == Some("unique".to_string()) {
+            // Get packages with the latest version
             let query = packages.distinct_on(name).order(name);
             // TODO: .order(sql::<Text>("string_to_array(version, '.')::int[]"))
 
@@ -41,6 +42,7 @@ impl Package {
             let results = query.load::<Self>(conn)?;
             Ok(results)
         } else {
+            // Get packages ordered by version (newer first)
             let query = packages
                 .order(name)
                 .order(sql::<Text>("string_to_array(version, '.')::int[]"));
