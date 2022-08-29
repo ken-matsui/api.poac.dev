@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 type DbError = Box<dyn std::error::Error + Send + Sync>;
 
-#[derive(Queryable)]
+#[derive(Queryable, Serialize, Deserialize)]
 pub(crate) struct Package {
     pub(crate) id: Uuid,
     pub(crate) published_at: NaiveDateTime,
@@ -26,6 +26,16 @@ impl Package {
         use crate::schema::packages::dsl::*;
 
         let results = packages.load::<Self>(conn)?;
+
+        Ok(results)
+    }
+
+    pub(crate) fn find(conn: &mut PgConnection, query: &str) -> Result<Vec<Self>, DbError> {
+        use crate::schema::packages::dsl::*;
+
+        let results = packages
+            .filter(name.like(format!("%{}%", query)))
+            .load::<Self>(conn)?;
 
         Ok(results)
     }

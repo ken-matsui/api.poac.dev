@@ -1,17 +1,44 @@
 mod models;
 mod schema;
 
-use actix_web::{get, middleware::Logger, web, App, Error, HttpResponse, HttpServer};
+use crate::models::Package;
+use actix_web::error::ErrorInternalServerError;
+use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Result};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use dotenvy::dotenv;
+use serde::Deserialize;
 use std::env;
 
 type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 #[get("/v1/packages")]
-async fn packages(pool: web::Data<DbPool>) -> Result<HttpResponse, Error> {
-    Ok(HttpResponse::Ok().body("Hello world!"))
+async fn packages(pool: web::Data<DbPool>) -> Result<HttpResponse> {
+    let other_packages = web::block(move || {
+        let mut conn = pool.get()?;
+        Package::find_all(&mut conn)
+    })
+    .await?
+    .map_err(ErrorInternalServerError)?;
+
+    Ok(HttpResponse::Ok().json(other_packages))
+}
+
+#[derive(Deserialize)]
+struct Info {
+    query: String,
+}
+
+#[post("/v1/search")]
+async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Info>) -> Result<HttpResponse> {
+    let other_packages = web::block(move || {
+        let mut conn = pool.get()?;
+        Package::find(&mut conn, &body.query)
+    })
+    .await?
+    .map_err(ErrorInternalServerError)?;
+
+    Ok(HttpResponse::Ok().json(other_packages))
 }
 
 #[actix_web::main]
@@ -19,7 +46,7 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    // set up database connection pool
+    // Set up database connection pool
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     let pool = Pool::builder()
@@ -31,10 +58,11 @@ async fn main() -> std::io::Result<()> {
     // Start HTTP server
     HttpServer::new(move || {
         App::new()
-            // set up DB pool to be used with web::Data<Pool> extractor
+            // Set up DB pool to be used with web::Data<Pool> extractor
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
             .service(packages)
+            .service(search)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
