@@ -12,11 +12,19 @@ use std::env;
 
 type DbPool = Pool<ConnectionManager<PgConnection>>;
 
+#[derive(Deserialize)]
+struct QueryParam {
+    filter: Option<String>,
+}
+
 #[get("/v1/packages")]
-async fn packages(pool: web::Data<DbPool>) -> Result<HttpResponse> {
+async fn packages(
+    pool: web::Data<DbPool>,
+    web::Query(query): web::Query<QueryParam>,
+) -> Result<HttpResponse> {
     let other_packages = web::block(move || {
         let mut conn = pool.get()?;
-        Package::find_all(&mut conn)
+        Package::find_all(&mut conn, query.filter)
     })
     .await?
     .map_err(ErrorInternalServerError)?;

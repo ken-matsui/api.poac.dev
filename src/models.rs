@@ -26,26 +26,40 @@ pub(crate) struct Package {
 }
 
 impl Package {
-    pub(crate) fn find_all(conn: &mut PgConnection) -> Result<Vec<Self>, DbError> {
+    pub(crate) fn find_all(
+        conn: &mut PgConnection,
+        filter: Option<String>,
+    ) -> Result<Vec<Self>, DbError> {
         use crate::schema::packages::dsl::*;
 
-        let query = packages
-            .order(name)
-            .order(sql::<Text>("string_to_array(version, '.')::int[]"));
+        if filter == Some("unique".to_string()) {
+            let query = packages.distinct_on(name).order(name);
+            // TODO: .order(sql::<Text>("string_to_array(version, '.')::int[]"))
 
-        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+            log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
 
-        let results = query.load::<Self>(conn)?;
-        Ok(results)
+            let results = query.load::<Self>(conn)?;
+            Ok(results)
+        } else {
+            let query = packages
+                .order(name)
+                .order(sql::<Text>("string_to_array(version, '.')::int[]"));
+
+            log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+
+            let results = query.load::<Self>(conn)?;
+            Ok(results)
+        }
     }
 
     pub(crate) fn find(conn: &mut PgConnection, query: &str) -> Result<Vec<Self>, DbError> {
         use crate::schema::packages::dsl::*;
 
-        let results = packages
-            .filter(name.like(format!("%{}%", query)))
-            .load::<Self>(conn)?;
+        let query = packages.filter(name.like(format!("%{}%", query)));
 
+        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+
+        let results = query.load::<Self>(conn)?;
         Ok(results)
     }
 }
