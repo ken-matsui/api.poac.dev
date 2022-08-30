@@ -15,7 +15,9 @@ pub(crate) fn get_all(
     if filter == Some("unique".to_string()) {
         // Get packages with the latest version
         let query = packages.distinct_on(name).order(name);
-        // TODO: .order(sql::<Text>("string_to_array(version, '.')::int[]"))
+        // Maybe related to: https://github.com/diesel-rs/diesel/issues/3020
+        // Compile error when uncommenting this:
+        // .order(sql::<Text>("string_to_array(version, '.')::int[]"));
         log_query(&query);
 
         let results = query.load::<Package>(conn)?;
