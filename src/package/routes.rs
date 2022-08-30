@@ -1,30 +1,11 @@
+mod get_all;
 mod versions;
 
 use crate::package::actions;
 use crate::utils::{DbPool, Response};
 use actix_web::error::ErrorInternalServerError;
-use actix_web::{get, post, web, HttpResponse, Result};
+use actix_web::{post, web, HttpResponse, Result};
 use serde::Deserialize;
-
-#[derive(Deserialize)]
-struct QueryParam {
-    filter: Option<String>,
-}
-
-#[get("/v1/packages")]
-async fn get_all(
-    pool: web::Data<DbPool>,
-    web::Query(query): web::Query<QueryParam>,
-) -> Result<HttpResponse> {
-    let packages = web::block(move || {
-        let mut conn = pool.get()?;
-        actions::get_all(&mut conn, query.filter)
-    })
-    .await?
-    .map_err(ErrorInternalServerError)?;
-
-    Ok(Response::ok(packages))
-}
 
 #[derive(Deserialize)]
 struct SearchBody {
@@ -96,10 +77,9 @@ async fn deps(pool: web::Data<DbPool>, body: web::Json<NameVerBody>) -> Result<H
 }
 
 pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(get_all);
+    cfg.configure(get_all::init_routes);
     cfg.service(search);
     cfg.service(repo_info);
-    cfg.service(versions::versions);
-    cfg.service(versions::versions_official);
+    cfg.configure(versions::init_routes);
     cfg.service(deps);
 }

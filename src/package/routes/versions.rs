@@ -15,7 +15,7 @@ async fn versions_impl(pool: web::Data<DbPool>, name: String) -> Result<HttpResp
 }
 
 #[get("/v1/packages/{org}/{name}/versions")]
-pub(crate) async fn versions(
+async fn versions(
     pool: web::Data<DbPool>,
     full_name: web::Path<(String, String)>,
 ) -> Result<HttpResponse> {
@@ -24,9 +24,14 @@ pub(crate) async fn versions(
 }
 
 #[get("/v1/packages/{name}/versions")]
-pub(crate) async fn versions_official(
+async fn versions_official(
     pool: web::Data<DbPool>,
     name: web::Path<String>,
 ) -> Result<HttpResponse> {
     versions_impl(pool, name.into_inner()).await
+}
+
+pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
+    cfg.service(versions);
+    cfg.service(versions_official);
 }
