@@ -234,28 +234,3 @@ v1::authCallback(
       + "&user_metadata=" + userMetadata
   ));
 }
-
-void
-v1::userPackages(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback,
-    const std::string& userName
-) {
-  // Get owned packages
-  const drogon::orm::Result result =
-      drogon::orm::QueryBuilder<Package>{}
-          .from("package p")
-          .select("distinct on (name) p.*")
-          .eq("u.user_name", userName, false)
-          .custom("left join ownership o on o.package_name = p.name")
-          .custom("left join public.user u on u.id = o.user_id")
-          .order("p.name", true, false)
-          .order("string_to_array(p.version, '.')::int[]", false, false)
-          .execSync(drogon::app().getDbClient());
-
-  std::vector<Package> packages;
-  for (const drogon::orm::Row& r : result) {
-    packages.emplace_back(r);
-  }
-  callback(poac_api::ok(drogon::orm::toJson(packages)));
-}

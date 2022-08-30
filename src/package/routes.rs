@@ -1,6 +1,7 @@
 mod dependents;
 mod deps;
 mod get_all;
+mod owned_packages;
 mod repo_info;
 mod search;
 mod versions;
@@ -14,4 +15,5 @@ pub(crate) fn init_routes(cfg: &mut ServiceConfig) {
     cfg.configure(versions::init_routes);
     cfg.configure(deps::init_routes);
     cfg.configure(dependents::init_routes);
+    cfg.configure(owned_packages::init_routes);
 }

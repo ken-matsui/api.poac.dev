@@ -17,7 +17,7 @@ pub(crate) fn get_all(
         let query = packages.distinct_on(name).order(name);
         // Maybe related to: https://github.com/diesel-rs/diesel/issues/3020
         // Compile error when uncommenting this:
-        // .order(sql::<Text>("string_to_array(version, '.')::int[]"));
+        // TODO: .order(sql::<Text>("string_to_array(version, '.')::int[]"));
         log_query(&query);
 
         let results = query.load::<Package>(conn)?;
@@ -117,6 +117,29 @@ pub(crate) fn dependents(conn: &mut PgConnection, name_: &str) -> Result<Vec<Pac
     use crate::schema::packages::dsl::*;
 
     let query = packages.filter(metadata.retrieve_as_object("dependencies").has_key(name_));
+    log_query(&query);
+
+    let result = query.load::<Package>(conn)?;
+    Ok(result)
+}
+
+pub(crate) fn owned_packages(
+    conn: &mut PgConnection,
+    user_name_: &str,
+) -> Result<Vec<Package>, DbError> {
+    use crate::schema::ownerships::dsl::{ownerships, package_name, user_id};
+    use crate::schema::packages::all_columns;
+    use crate::schema::packages::dsl::*;
+    use crate::schema::users::dsl::{id as users_id, user_name, users};
+
+    let query = packages
+        .distinct_on(name)
+        .select(all_columns)
+        .left_join(ownerships.on(package_name.eq(name)))
+        .left_join(users.on(users_id.eq(user_id)))
+        .filter(user_name.eq(user_name_))
+        .order(name);
+    // TODO: .order(sql::<Text>("string_to_array(version, '.')::int[]"));
     log_query(&query);
 
     let result = query.load::<Package>(conn)?;
