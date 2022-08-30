@@ -1,4 +1,4 @@
-use crate::models::Package;
+use crate::package::Package;
 use crate::utils::DbPool;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{get, post, web, HttpResponse, Result};

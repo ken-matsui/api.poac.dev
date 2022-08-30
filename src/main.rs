@@ -1,4 +1,3 @@
-mod models;
 mod package;
 mod schema;
 mod utils;
