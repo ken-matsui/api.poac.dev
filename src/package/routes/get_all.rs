@@ -1,7 +1,7 @@
 use crate::package::actions;
-use crate::utils::{DbPool, Response};
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{get, web, HttpResponse, Result};
+use poac_api_utils::{DbPool, Response};
 use serde::Deserialize;
 
 #[derive(Deserialize)]

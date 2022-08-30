@@ -1,7 +1,7 @@
 use crate::package::actions;
-use crate::utils::{concat_org_name, DbPool, Response};
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{get, web, HttpResponse, Result};
+use poac_api_utils::{concat_org_name, DbPool, Response};
 
 async fn dependents_impl(pool: web::Data<DbPool>, name: String) -> Result<HttpResponse> {
     let name_ = name.clone();

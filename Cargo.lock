@@ -895,9 +895,20 @@ dependencies = [
  "dotenvy",
  "env_logger",
  "log",
+ "poac_api_utils",
  "serde",
  "serde_json",
  "uuid",
+]
+
+[[package]]
+name = "poac_api_utils"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "diesel",
+ "log",
+ "serde",
 ]
 
 [[package]]

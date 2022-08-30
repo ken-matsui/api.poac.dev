@@ -1,9 +1,9 @@
 use crate::package::Package;
-use crate::utils::{log_query, DbError};
 use diesel::dsl::sql;
 use diesel::prelude::*;
 use diesel::sql_types::Text;
 use diesel::PgConnection;
+use poac_api_utils::{log_query, DbError};
 use serde::Serialize;
 
 pub(crate) fn get_all(
