@@ -10,6 +10,7 @@ use get_access_token::get_access_token;
 use get_email::get_email;
 use get_user_meta::get_user_meta;
 
+use crate::user::models::User;
 use actix_web::error::{ErrorInternalServerError, ErrorUnauthorized};
 use actix_web::{get, web, HttpResponse, Result};
 use diesel::prelude::*;
@@ -28,9 +29,8 @@ async fn auth_callback(
 ) -> Result<HttpResponse> {
     let access_token = get_access_token(query.code).await?;
     let user_meta = get_user_meta(&access_token).await?;
-    let user = find_user(pool.clone(), user_meta.clone()).await?;
-
-    let user = match user {
+    let maybe_user = find_user(pool.clone(), user_meta.clone()).await?;
+    let user = match maybe_user {
         None => {
             // Create a new user so that there was not the same user.
             let email = get_email(&access_token).await?;
@@ -43,9 +43,9 @@ async fn auth_callback(
                 return Err(ErrorUnauthorized("You are not authorized."));
             }
 
-            // Stale user info (user_meta must be up-to-date)
+            // Update if user info is stale (user_meta must be up-to-date)
             if user_meta.name != user.name || user_meta.avatar_url != user.avatar_url {
-                web::block(move || -> Result<crate::user::models::User, DbError> {
+                web::block(move || -> Result<User, DbError> {
                     use crate::schema::users::dsl::{avatar_url, id, name, user_name, users};
 
                     let mut conn = pool.get()?;
@@ -56,14 +56,14 @@ async fn auth_callback(
                             avatar_url.eq(&user_meta.avatar_url),
                         ))
                         .returning((id, name, user_name, avatar_url))
-                        .get_result::<crate::user::models::User>(&mut conn)?;
+                        .get_result::<User>(&mut conn)?;
 
                     Ok(user)
                 })
                 .await?
                 .map_err(ErrorInternalServerError)?
             } else {
-                crate::user::models::User::from(user)
+                User::from(user)
             }
         }
     };
