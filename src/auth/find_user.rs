@@ -1,5 +1,5 @@
 use crate::auth::get_user_meta::UserMeta;
-use actix_web::error::ErrorInternalServerError;
+use actix_web::error::{ErrorInternalServerError, ErrorUnauthorized};
 use actix_web::{web, Result};
 use diesel::prelude::*;
 use poac_api_utils::{log_query, DbError, DbPool};
@@ -13,6 +13,17 @@ pub(crate) struct User {
     user_name: String,
     pub(crate) avatar_url: String,
     pub(crate) status: String,
+}
+
+impl User {
+    pub(crate) fn check_status(&self) -> Result<()> {
+        if self.status != "active" {
+            log::warn!("A disabled user tried to log in: {:?}", self);
+            Err(ErrorUnauthorized("You are not authorized."))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl From<User> for crate::user::models::User {
