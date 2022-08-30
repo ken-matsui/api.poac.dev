@@ -294,31 +294,6 @@ v1::ownersOrg(
 }
 
 void
-v1::dependents(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback,
-    const std::string& name
-) {
-  // Get dependents of given package name
-  const std::vector<Package> packages =
-      drogon::orm::QueryBuilder<Package>{}
-          .from("packages")
-          .selectAll()
-          .qm("metadata->'dependencies'", name, false)
-          .execSync(drogon::app().getDbClient());
-  callback(poac_api::ok(drogon::orm::toJson(packages)));
-}
-void
-v1::dependentsOrg(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback,
-    const std::string& org,
-    const std::string& name
-) {
-  dependents(req, std::move(callback), org + "/" + name);
-}
-
-void
 v1::userPackages(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback,

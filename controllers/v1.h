@@ -9,9 +9,6 @@ public:
   METHOD_ADD(v1::owners, "/packages/{name}/owners", Get);
   METHOD_ADD(v1::ownersOrg, "/packages/{org}/{name}/owners", Get);
 
-  METHOD_ADD(v1::dependents, "/packages/{name}/dependents", Get);
-  METHOD_ADD(v1::dependentsOrg, "/packages/{org}/{name}/dependents", Get);
-
   METHOD_ADD(v1::userPackages, "/users/{userName}/packages", Get);
 
   METHOD_LIST_END
