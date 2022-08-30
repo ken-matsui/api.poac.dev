@@ -1,25 +1,3 @@
-#include "controllers/v1.h"
-
-// std
-#include <optional>
-#include <string>
-#include <utility>
-#include <vector>
-
-// internal
-#include <QueryBuilder.h>
-#include <models/Package.h> // NOLINT(build/include_order)
-#include <models/User.h> // NOLINT(build/include_order)
-#include <utils.hpp>
-
-// external
-#include <dotenv.h> // NOLINT(build/include_order)
-#include <drogon/HttpClient.h> // NOLINT(build/include_order)
-#include <drogon/utils/Utilities.h> // NOLINT(build/include_order)
-
-using drogon_model::postgres::Package;
-using drogon_model::postgres::User;
-
 std::optional<std::string>
 getAccessToken(const std::string& code) {
   const auto client = HttpClient::newHttpClient("https://github.com");
@@ -255,42 +233,6 @@ v1::authCallback(
       "https://poac.pm/api/auth?access_token=" + accessToken
       + "&user_metadata=" + userMetadata
   ));
-}
-
-void
-v1::owners(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback,
-    const std::string& name
-) {
-  // Get dependents of given package name
-  const drogon::orm::Result result =
-      drogon::orm::QueryBuilder<User>{}
-          .from("public.user u")
-          .select("u.id as id, name, user_name, avatar_url")
-          .custom("left join ownership o on o.package_name = $1", name)
-          .custom("where o.user_id = u.id")
-          .execSync(drogon::app().getDbClient());
-
-  Json::Value owners(Json::arrayValue);
-  for (const drogon::orm::Row& row : result) {
-    Json::Value owner(Json::objectValue);
-    owner["id"] = row["id"].as<std::string>();
-    owner["name"] = row["name"].as<std::string>();
-    owner["user_name"] = row["user_name"].as<std::string>();
-    owner["avatar_url"] = row["avatar_url"].as<std::string>();
-    owners.append(owner);
-  }
-  callback(poac_api::ok(owners));
-}
-void
-v1::ownersOrg(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback,
-    const std::string& org,
-    const std::string& name
-) {
-  owners(req, std::move(callback), org + "/" + name);
 }
 
 void

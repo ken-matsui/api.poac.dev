@@ -6,9 +6,6 @@ public:
 
   METHOD_ADD(v1::authCallback, "/auth/callback", Get);
 
-  METHOD_ADD(v1::owners, "/packages/{name}/owners", Get);
-  METHOD_ADD(v1::ownersOrg, "/packages/{org}/{name}/owners", Get);
-
   METHOD_ADD(v1::userPackages, "/users/{userName}/packages", Get);
 
   METHOD_LIST_END
