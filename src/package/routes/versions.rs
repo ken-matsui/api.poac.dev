@@ -1,5 +1,5 @@
 use crate::package::actions;
-use crate::utils::{DbPool, Response};
+use crate::utils::{concat_org_name, DbPool, Response};
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{get, web, HttpResponse, Result};
 
@@ -20,7 +20,7 @@ async fn versions(
     param: web::Path<(String, String)>,
 ) -> Result<HttpResponse> {
     let (org, name) = param.into_inner();
-    versions_impl(pool, format!("{}/{}", org, name)).await
+    versions_impl(pool, concat_org_name(org, name)).await
 }
 
 #[get("/v1/packages/{name}/versions")]

@@ -1,5 +1,5 @@
 use crate::package::actions;
-use crate::utils::{DbPool, Response};
+use crate::utils::{concat_org_name, DbPool, Response};
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{get, web, HttpResponse, Result};
 
@@ -33,7 +33,7 @@ async fn repo_info(
     param: web::Path<(String, String, String)>,
 ) -> Result<HttpResponse> {
     let (org, name, version) = param.into_inner();
-    repo_info_impl(pool, format!("{}/{}", org, name), version).await
+    repo_info_impl(pool, concat_org_name(org, name), version).await
 }
 
 #[get("/v1/packages/{name}/{version}/repoinfo")]

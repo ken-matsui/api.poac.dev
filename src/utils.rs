@@ -39,3 +39,8 @@ impl<T: Serialize> ErrResponse<T> {
         Self { error }
     }
 }
+
+#[inline]
+pub(crate) fn concat_org_name(org: String, name: String) -> String {
+    format!("{}/{}", org, name)
+}
