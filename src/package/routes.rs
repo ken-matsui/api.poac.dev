@@ -25,15 +25,16 @@ async fn packages(
 }
 
 #[derive(Deserialize)]
-struct Info {
+struct Body {
     query: String,
+    per_page: Option<i64>,
 }
 
 #[post("/v1/search")]
-async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Info>) -> Result<HttpResponse> {
+async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Body>) -> Result<HttpResponse> {
     let other_packages = web::block(move || {
         let mut conn = pool.get()?;
-        Package::find(&mut conn, &body.query)
+        Package::find(&mut conn, &body.query, body.per_page)
     })
     .await?
     .map_err(ErrorInternalServerError)?;

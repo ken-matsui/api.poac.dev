@@ -53,14 +53,27 @@ impl Package {
         }
     }
 
-    pub(crate) fn find(conn: &mut PgConnection, query: &str) -> Result<Vec<Self>, DbError> {
+    pub(crate) fn find(
+        conn: &mut PgConnection,
+        query: &str,
+        per_page: Option<i64>,
+    ) -> Result<Vec<Self>, DbError> {
         use crate::schema::packages::dsl::*;
 
         let query = packages.filter(name.like(format!("%{}%", query)));
 
-        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+        if let Some(per_page) = per_page {
+            let query = query.limit(per_page);
 
-        let results = query.load::<Self>(conn)?;
-        Ok(results)
+            log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+
+            let results = query.load::<Self>(conn)?;
+            Ok(results)
+        } else {
+            log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+
+            let results = query.load::<Self>(conn)?;
+            Ok(results)
+        }
     }
 }

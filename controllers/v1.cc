@@ -406,38 +406,6 @@ v1::repoinfo(
 }
 
 void
-v1::search(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback
-) {
-  const auto request = req->getJsonObject();
-
-  // Validations
-  const Json::Value query = request->get("query", "");
-  if (!query.isString()) {
-    callback(poac_api::badRequest("`query` must be string"));
-    return;
-  }
-  const Json::Value perPage = request->get("perPage", 0);
-  if (!perPage.isUInt64()) {
-    callback(poac_api::badRequest("`perPage` must be uint64"));
-    return;
-  }
-
-  // SQL query
-  auto sqlQuery = drogon::orm::QueryBuilder<Package>{}
-                      .from("packages")
-                      .selectAll()
-                      .like("name", "%" + query.asString() + "%");
-  if (perPage.asUInt() != 0) {
-    sqlQuery.limit(perPage.asInt64());
-  }
-  const std::vector<Package> result =
-      sqlQuery.execSync(drogon::app().getDbClient());
-  callback(poac_api::ok(drogon::orm::toJson(result)));
-}
-
-void
 v1::versions(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback
