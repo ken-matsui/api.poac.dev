@@ -1,5 +1,6 @@
 mod package;
 mod schema;
+mod user;
 mod utils;
 
 use actix_web::{middleware::Logger, web, App, HttpServer};
