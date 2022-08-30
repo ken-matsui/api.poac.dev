@@ -25,7 +25,7 @@ pub(crate) struct Package {
 }
 
 impl Package {
-    pub(crate) fn find_all(
+    pub(crate) fn get_all(
         conn: &mut PgConnection,
         filter: Option<String>,
     ) -> Result<Vec<Self>, DbError> {
@@ -53,7 +53,7 @@ impl Package {
         }
     }
 
-    pub(crate) fn find(
+    pub(crate) fn search(
         conn: &mut PgConnection,
         query: &str,
         per_page: Option<i64>,

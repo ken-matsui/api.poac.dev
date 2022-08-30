@@ -10,13 +10,13 @@ struct QueryParam {
 }
 
 #[get("/v1/packages")]
-async fn packages(
+async fn get_all(
     pool: web::Data<DbPool>,
     web::Query(query): web::Query<QueryParam>,
 ) -> Result<HttpResponse> {
     let other_packages = web::block(move || {
         let mut conn = pool.get()?;
-        Package::find_all(&mut conn, query.filter)
+        Package::get_all(&mut conn, query.filter)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
@@ -34,7 +34,7 @@ struct Body {
 async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Body>) -> Result<HttpResponse> {
     let other_packages = web::block(move || {
         let mut conn = pool.get()?;
-        Package::find(&mut conn, &body.query, body.per_page)
+        Package::search(&mut conn, &body.query, body.per_page)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
@@ -43,6 +43,6 @@ async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Body>) -> Re
 }
 
 pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(packages);
+    cfg.service(get_all);
     cfg.service(search);
 }
