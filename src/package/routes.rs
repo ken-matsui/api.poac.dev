@@ -1,5 +1,5 @@
 use crate::package::actions;
-use crate::utils::DbPool;
+use crate::utils::{DbPool, Response};
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{get, post, web, HttpResponse, Result};
 use serde::Deserialize;
@@ -21,7 +21,7 @@ async fn get_all(
     .await?
     .map_err(ErrorInternalServerError)?;
 
-    Ok(HttpResponse::Ok().json(packages))
+    Ok(Response::ok(packages))
 }
 
 #[derive(Deserialize)]
@@ -42,7 +42,7 @@ async fn search(
     .await?
     .map_err(ErrorInternalServerError)?;
 
-    Ok(HttpResponse::Ok().json(packages))
+    Ok(Response::ok(packages))
 }
 
 #[derive(Deserialize, Clone)]
@@ -63,14 +63,13 @@ async fn repo_info(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Re
     .map_err(ErrorInternalServerError)?;
 
     if let Some(packages) = packages {
-        Ok(HttpResponse::Ok().json(packages))
+        Ok(Response::ok(packages))
     } else {
         let body_ = body.into_inner();
-        let res = HttpResponse::NotFound().body(format!(
+        Ok(HttpResponse::NotFound().body(format!(
             "No package found where name = {} & version = {}",
             body_.name, body_.version
-        ));
-        Ok(res)
+        )))
     }
 }
 

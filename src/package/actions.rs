@@ -6,6 +6,7 @@ use diesel::pg::Pg;
 use diesel::prelude::*;
 use diesel::sql_types::Text;
 use diesel::PgConnection;
+use serde::Serialize;
 
 pub(crate) fn get_all(
     conn: &mut PgConnection,
@@ -59,11 +60,17 @@ pub(crate) fn search(
     }
 }
 
+#[derive(Serialize)]
+pub(crate) struct RepoInfo {
+    pub(crate) repository: String,
+    pub(crate) sha256sum: String,
+}
+
 pub(crate) fn repo_info(
     conn: &mut PgConnection,
     name_: &str,
     version_: &str,
-) -> Result<Option<(String, String)>, DbError> {
+) -> Result<Option<RepoInfo>, DbError> {
     use crate::schema::packages::dsl::*;
 
     let query = packages
@@ -73,6 +80,12 @@ pub(crate) fn repo_info(
 
     log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
 
-    let result = query.first::<(String, String)>(conn).optional()?;
+    let result = query
+        .first::<(String, String)>(conn)
+        .optional()?
+        .map(|(repo, sha)| RepoInfo {
+            repository: repo,
+            sha256sum: sha,
+        });
     Ok(result)
 }
