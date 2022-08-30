@@ -10,7 +10,6 @@ pub(crate) struct UserMeta {
     #[serde(rename(deserialize = "login"))]
     pub(crate) user_name: String,
     pub(crate) avatar_url: String,
-    pub(crate) email: Option<String>,
 }
 
 pub(crate) async fn get_user_meta(access_token: &str) -> Result<UserMeta> {

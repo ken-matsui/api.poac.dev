@@ -5,27 +5,6 @@ struct UserMeta {
   std::string email;
 };
 
-std::optional<User>
-createNewUser(const UserMeta& userMeta) {
-  // Create a new user
-  const std::vector<User> newUsers =
-      drogon::orm::QueryBuilder<User>{}
-          .from("public.user")
-          .insert(
-              {{"user_name", userMeta.userName},
-               {"avatar_url", userMeta.avatarUrl},
-               {"name", userMeta.name},
-               {"email", userMeta.email},
-               {"status", "active"}}
-          )
-          .execSync(drogon::app().getDbClient());
-  if (newUsers.empty()) {
-    LOG_ERROR << "The new user is empty. Something went wrong.";
-    return std::nullopt;
-  }
-  return newUsers[0];
-}
-
 std::optional<Json::Value>
 findUser(const std::string& accessToken, UserMeta userMeta) {
   const std::vector<User> users = drogon::orm::QueryBuilder<User>{}
