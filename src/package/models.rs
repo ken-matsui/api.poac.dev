@@ -76,4 +76,22 @@ impl Package {
             Ok(results)
         }
     }
+
+    pub(crate) fn repo_info(
+        conn: &mut PgConnection,
+        name_: &str,
+        version_: &str,
+    ) -> Result<Option<(String, String)>, DbError> {
+        use crate::schema::packages::dsl::*;
+
+        let query = packages
+            .select((repository, sha256sum))
+            .filter(name.eq(name_))
+            .filter(version.eq(version_));
+
+        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+
+        let results = query.first::<(String, String)>(conn).optional()?;
+        Ok(results)
+    }
 }

@@ -375,37 +375,6 @@ v1::deps(
 }
 
 void
-v1::repoinfo(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback
-) {
-  const auto request = req->getJsonObject();
-
-  // Validations
-  const Json::Value name = request->get("name", "");
-  const Json::Value version = request->get("version", "");
-  if (!(name.isString() && version.isString())) {
-    callback(poac_api::badRequest("`name` & `version` must be string"));
-    return;
-  }
-
-  const drogon::orm::Row result = drogon::orm::QueryBuilder<Package>{}
-                                      .from("packages")
-                                      .select("repository, sha256sum")
-                                      .eq("name", name.asString())
-                                      .eq("version", version.asString())
-                                      .limit(1)
-                                      .single()
-                                      .execSync(drogon::app().getDbClient());
-
-  // Response build
-  Json::Value package(Json::objectValue);
-  package["repository"] = result["repository"].as<std::string>();
-  package["sha256sum"] = result["sha256sum"].as<std::string>();
-  callback(poac_api::ok(package));
-}
-
-void
 v1::versions(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback
