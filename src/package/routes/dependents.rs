@@ -25,6 +25,15 @@ async fn dependents(
     dependents_impl(pool, concat_org_name(org, name)).await
 }
 
+#[get("/v1/packages/{name}/dependents")]
+async fn dependents_official(
+    pool: web::Data<DbPool>,
+    name: web::Path<String>,
+) -> Result<HttpResponse> {
+    dependents_impl(pool, name.into_inner()).await
+}
+
 pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(dependents);
+    cfg.service(dependents_official);
 }
