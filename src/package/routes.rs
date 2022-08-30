@@ -73,8 +73,29 @@ async fn repo_info(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Re
     }
 }
 
+#[derive(Deserialize)]
+struct VersionsBody {
+    name: String,
+}
+
+#[post("/v1/versions")]
+async fn versions(
+    pool: web::Data<DbPool>,
+    web::Json(body): web::Json<VersionsBody>,
+) -> Result<HttpResponse> {
+    let packages = web::block(move || {
+        let mut conn = pool.get()?;
+        actions::versions(&mut conn, &body.name)
+    })
+    .await?
+    .map_err(ErrorInternalServerError)?;
+
+    Ok(Response::ok(packages))
+}
+
 pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(get_all);
     cfg.service(search);
     cfg.service(repo_info);
+    cfg.service(versions);
 }

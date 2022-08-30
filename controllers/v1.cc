@@ -373,31 +373,3 @@ v1::deps(
   package["dependencies"] = result["dependencies"].as<Json::Value>();
   callback(poac_api::ok(package));
 }
-
-void
-v1::versions(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback
-) {
-  const auto request = req->getJsonObject();
-
-  // Validations
-  const Json::Value name = request->get("name", "");
-  if (!name.isString()) {
-    callback(poac_api::badRequest("`name` must be string"));
-    return;
-  }
-
-  const drogon::orm::Result result = drogon::orm::QueryBuilder<Package>{}
-                                         .from("packages")
-                                         .select("version")
-                                         .eq("name", name.asString())
-                                         .execSync(drogon::app().getDbClient());
-
-  // Response build
-  Json::Value versions(Json::arrayValue);
-  for (const drogon::orm::Row& row : result) {
-    versions.append(row["version"].as<std::string>());
-  }
-  callback(poac_api::ok(versions));
-}
