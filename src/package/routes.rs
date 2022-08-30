@@ -46,13 +46,13 @@ async fn search(
 }
 
 #[derive(Deserialize, Clone)]
-struct RepoInfoBody {
+struct NameVerBody {
     name: String,
     version: String,
 }
 
 #[post("/v1/repoinfo")]
-async fn repo_info(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Result<HttpResponse> {
+async fn repo_info(pool: web::Data<DbPool>, body: web::Json<NameVerBody>) -> Result<HttpResponse> {
     let body_ = body.clone();
 
     let packages = web::block(move || {
@@ -72,19 +72,10 @@ async fn repo_info(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Re
     ))
 }
 
-#[derive(Deserialize)]
-struct VersionsBody {
-    name: String,
-}
-
-#[post("/v1/versions")]
-async fn versions(
-    pool: web::Data<DbPool>,
-    web::Json(body): web::Json<VersionsBody>,
-) -> Result<HttpResponse> {
+async fn versions_impl(pool: web::Data<DbPool>, name: String) -> Result<HttpResponse> {
     let packages = web::block(move || {
         let mut conn = pool.get()?;
-        actions::versions(&mut conn, &body.name)
+        actions::versions(&mut conn, &name)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
@@ -92,8 +83,25 @@ async fn versions(
     Ok(Response::ok(packages))
 }
 
+#[get("/v1/packages/{org}/{name}/versions")]
+async fn versions(
+    pool: web::Data<DbPool>,
+    full_name: web::Path<(String, String)>,
+) -> Result<HttpResponse> {
+    let (org, name) = full_name.into_inner();
+    versions_impl(pool, format!("{}/{}", org, name)).await
+}
+
+#[get("/v1/packages/{name}/versions")]
+async fn versions_official(
+    pool: web::Data<DbPool>,
+    name: web::Path<String>,
+) -> Result<HttpResponse> {
+    versions_impl(pool, name.into_inner()).await
+}
+
 #[post("/v1/deps")]
-async fn deps(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Result<HttpResponse> {
+async fn deps(pool: web::Data<DbPool>, body: web::Json<NameVerBody>) -> Result<HttpResponse> {
     let body_ = body.clone();
 
     let packages = web::block(move || {
@@ -118,5 +126,6 @@ pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(search);
     cfg.service(repo_info);
     cfg.service(versions);
+    cfg.service(versions_official);
     cfg.service(deps);
 }
