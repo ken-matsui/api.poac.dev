@@ -95,3 +95,20 @@ pub(crate) fn versions(conn: &mut PgConnection, name_: &str) -> Result<Vec<Strin
     let results = query.load::<String>(conn)?;
     Ok(results)
 }
+
+pub(crate) fn deps(
+    conn: &mut PgConnection,
+    name_: &str,
+    version_: &str,
+) -> Result<Option<serde_json::Value>, DbError> {
+    use crate::schema::packages::dsl::*;
+
+    let query = packages
+        .select(metadata.retrieve_as_object("dependencies"))
+        .filter(name.eq(name_))
+        .filter(version.eq(version_));
+    log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+
+    let result = query.first::<serde_json::Value>(conn).optional()?;
+    Ok(result)
+}

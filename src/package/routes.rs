@@ -67,7 +67,7 @@ async fn repo_info(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Re
     } else {
         let body_ = body.into_inner();
         Ok(HttpResponse::NotFound().body(format!(
-            "No package found where name = {} & version = {}",
+            "No package found where name = `{}` & version = `{}`",
             body_.name, body_.version
         )))
     }
@@ -93,9 +93,32 @@ async fn versions(
     Ok(Response::ok(packages))
 }
 
+#[post("/v1/deps")]
+async fn deps(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Result<HttpResponse> {
+    let body_ = body.clone();
+
+    let packages = web::block(move || {
+        let mut conn = pool.get()?;
+        actions::deps(&mut conn, &body_.name, &body_.version)
+    })
+    .await?
+    .map_err(ErrorInternalServerError)?;
+
+    if let Some(packages) = packages {
+        Ok(Response::ok(packages))
+    } else {
+        let body_ = body.into_inner();
+        Ok(HttpResponse::NotFound().body(format!(
+            "No package found where name = `{}` & version = `{}`",
+            body_.name, body_.version
+        )))
+    }
+}
+
 pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(get_all);
     cfg.service(search);
     cfg.service(repo_info);
     cfg.service(versions);
+    cfg.service(deps);
 }

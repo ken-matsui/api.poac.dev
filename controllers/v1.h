@@ -14,7 +14,5 @@ public:
 
   METHOD_ADD(v1::userPackages, "/users/{userName}/packages", Get);
 
-  METHOD_ADD(v1::deps, "/deps", Post, "JsonReq");
-
   METHOD_LIST_END
 };
