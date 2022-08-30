@@ -16,3 +16,16 @@ diesel::table! {
         sha256sum -> Varchar,
     }
 }
+
+diesel::table! {
+    users (id) {
+        id -> Uuid,
+        user_name -> Text,
+        email -> Text,
+        name -> Text,
+        avatar_url -> Text,
+        status -> Text,
+    }
+}
+
+diesel::allow_tables_to_appear_in_same_query!(packages, users);
