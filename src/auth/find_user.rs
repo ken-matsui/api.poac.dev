@@ -1,7 +1,8 @@
 use crate::auth::get_user_meta::UserMeta;
+use actix_web::error::ErrorInternalServerError;
+use actix_web::{web, Result};
 use diesel::prelude::*;
-use diesel::PgConnection;
-use poac_api_utils::{log_query, DbError};
+use poac_api_utils::{log_query, DbError, DbPool};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -25,10 +26,7 @@ impl From<User> for crate::user::models::User {
     }
 }
 
-pub(crate) fn find_user(
-    conn: &mut PgConnection,
-    user_meta: UserMeta,
-) -> Result<Option<User>, DbError> {
+fn find_user_impl(conn: &mut PgConnection, user_meta: UserMeta) -> Result<Option<User>, DbError> {
     use crate::schema::users::dsl::*;
 
     let query = users
@@ -38,4 +36,17 @@ pub(crate) fn find_user(
 
     let result = query.first::<User>(conn).optional()?;
     Ok(result)
+}
+
+pub(crate) async fn find_user(
+    pool: web::Data<DbPool>,
+    user_meta: UserMeta,
+) -> Result<Option<User>> {
+    let user = web::block(move || {
+        let mut conn = pool.get()?;
+        find_user_impl(&mut conn, user_meta)
+    })
+    .await?
+    .map_err(ErrorInternalServerError)?;
+    Ok(user)
 }
