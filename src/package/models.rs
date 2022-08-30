@@ -91,7 +91,7 @@ impl Package {
 
         log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
 
-        let results = query.first::<(String, String)>(conn).optional()?;
-        Ok(results)
+        let result = query.first::<(String, String)>(conn).optional()?;
+        Ok(result)
     }
 }

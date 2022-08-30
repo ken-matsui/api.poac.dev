@@ -45,25 +45,33 @@ async fn search(
     Ok(HttpResponse::Ok().json(packages))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct RepoInfoBody {
     name: String,
     version: String,
 }
 
 #[post("/v1/repoinfo")]
-async fn repo_info(
-    pool: web::Data<DbPool>,
-    web::Json(body): web::Json<RepoInfoBody>,
-) -> Result<HttpResponse> {
+async fn repo_info(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Result<HttpResponse> {
+    let body_ = body.clone();
+
     let packages = web::block(move || {
         let mut conn = pool.get()?;
-        Package::repo_info(&mut conn, &body.name, &body.version)
+        Package::repo_info(&mut conn, &body_.name, &body_.version)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
 
-    Ok(HttpResponse::Ok().json(packages))
+    if let Some(packages) = packages {
+        Ok(HttpResponse::Ok().json(packages))
+    } else {
+        let body_ = body.into_inner();
+        let res = HttpResponse::NotFound().body(format!(
+            "No package found where name = {} & version = {}",
+            body_.name, body_.version
+        ));
+        Ok(res)
+    }
 }
 
 pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
