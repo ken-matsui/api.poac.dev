@@ -1,3 +1,5 @@
+mod versions;
+
 use crate::package::actions;
 use crate::utils::{DbPool, Response};
 use actix_web::error::ErrorInternalServerError;
@@ -72,34 +74,6 @@ async fn repo_info(pool: web::Data<DbPool>, body: web::Json<NameVerBody>) -> Res
     ))
 }
 
-async fn versions_impl(pool: web::Data<DbPool>, name: String) -> Result<HttpResponse> {
-    let packages = web::block(move || {
-        let mut conn = pool.get()?;
-        actions::versions(&mut conn, &name)
-    })
-    .await?
-    .map_err(ErrorInternalServerError)?;
-
-    Ok(Response::ok(packages))
-}
-
-#[get("/v1/packages/{org}/{name}/versions")]
-async fn versions(
-    pool: web::Data<DbPool>,
-    full_name: web::Path<(String, String)>,
-) -> Result<HttpResponse> {
-    let (org, name) = full_name.into_inner();
-    versions_impl(pool, format!("{}/{}", org, name)).await
-}
-
-#[get("/v1/packages/{name}/versions")]
-async fn versions_official(
-    pool: web::Data<DbPool>,
-    name: web::Path<String>,
-) -> Result<HttpResponse> {
-    versions_impl(pool, name.into_inner()).await
-}
-
 #[post("/v1/deps")]
 async fn deps(pool: web::Data<DbPool>, body: web::Json<NameVerBody>) -> Result<HttpResponse> {
     let body_ = body.clone();
@@ -125,7 +99,7 @@ pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(get_all);
     cfg.service(search);
     cfg.service(repo_info);
-    cfg.service(versions);
-    cfg.service(versions_official);
+    cfg.service(versions::versions);
+    cfg.service(versions::versions_official);
     cfg.service(deps);
 }
