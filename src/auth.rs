@@ -34,15 +34,7 @@ async fn auth_callback(
         None => {
             // Create a new user so that there was not the same user.
             let email = get_email(&access_token).await?;
-
-            let pool_cloned = pool.clone();
-            let user_meta_cloned = user_meta.clone();
-            web::block(move || {
-                let mut conn = pool_cloned.get()?;
-                create_user(&mut conn, &user_meta_cloned, &email)
-            })
-            .await?
-            .map_err(ErrorInternalServerError)?
+            create_user(pool.clone(), user_meta, email).await?
         }
         Some(user) => {
             // This is NOT a new user

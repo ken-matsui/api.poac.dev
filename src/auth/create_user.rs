@@ -1,8 +1,10 @@
 use crate::auth::get_user_meta::UserMeta;
 use crate::schema::users;
 use crate::user::models::User;
+use actix_web::error::ErrorInternalServerError;
+use actix_web::{web, Result};
 use diesel::prelude::*;
-use poac_api_utils::DbError;
+use poac_api_utils::{DbError, DbPool};
 
 #[derive(Insertable)]
 #[diesel(table_name = users)]
@@ -14,7 +16,7 @@ struct NewUser<'a> {
     status: &'a str,
 }
 
-pub(crate) fn create_user(
+fn create_user_impl(
     conn: &mut PgConnection,
     user_meta: &UserMeta,
     email: &str,
@@ -33,4 +35,19 @@ pub(crate) fn create_user(
         .get_result::<User>(conn)?;
 
     Ok(result)
+}
+
+pub(crate) async fn create_user(
+    pool: web::Data<DbPool>,
+    user_meta: UserMeta,
+    email: String,
+) -> Result<User> {
+    let user = web::block(move || {
+        let mut conn = pool.get()?;
+        create_user_impl(&mut conn, &user_meta, &email)
+    })
+    .await?
+    .map_err(ErrorInternalServerError)?;
+
+    Ok(user)
 }

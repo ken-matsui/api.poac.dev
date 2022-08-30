@@ -48,5 +48,6 @@ pub(crate) async fn find_user(
     })
     .await?
     .map_err(ErrorInternalServerError)?;
+
     Ok(user)
 }
