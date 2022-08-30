@@ -1,92 +1,9 @@
-std::optional<std::string>
-getAccessToken(const std::string& code) {
-  const auto client = HttpClient::newHttpClient("https://github.com");
-  auto oauthReq = HttpRequest::newHttpRequest();
-  oauthReq->setMethod(drogon::Get);
-  oauthReq->setPath("/login/oauth/access_token");
-  oauthReq->addHeader("Accept", "application/json");
-  oauthReq->setParameter("code", code);
-  oauthReq->setParameter(
-      "client_id", dotenv::getenv("GITHUB_OAUTH_CLIENT_ID", "")
-  );
-  oauthReq->setParameter(
-      "client_secret", dotenv::getenv("GITHUB_OAUTH_CLIENT_SECRET", "")
-  );
-
-  const auto [result, response] = client->sendRequest(oauthReq);
-  if (result != ReqResult::Ok) {
-    // Error
-    LOG_ERROR << result;
-    return std::nullopt;
-  }
-  const auto resJson = response->getJsonObject();
-  if (!resJson) {
-    // Error
-    LOG_ERROR << "The response is invalid";
-    return std::nullopt;
-  }
-  if (!(*resJson)["access_token"].isString()) {
-    // Error
-    LOG_ERROR << "The access_token is invalid";
-    return std::nullopt;
-  }
-
-  // Retrieve access_token
-  return (*resJson)["access_token"].asString();
-}
-
 struct UserMeta {
   std::string userName;
   std::string avatarUrl;
   std::string name;
   std::string email;
 };
-
-std::optional<UserMeta>
-getUserMeta(const std::string& accessToken) {
-  const auto client = HttpClient::newHttpClient("https://api.github.com");
-  auto req = HttpRequest::newHttpRequest();
-  req->setMethod(drogon::Get);
-  req->setPath("/user");
-  req->addHeader("Authorization", "token " + accessToken);
-
-  const auto [result, response] = client->sendRequest(req);
-  if (result != ReqResult::Ok) {
-    // Error
-    LOG_ERROR << result;
-    return std::nullopt;
-  }
-
-  const auto resJson = response->getJsonObject();
-  if (!resJson) {
-    // Error
-    LOG_ERROR << "The response is invalid";
-    return std::nullopt;
-  }
-
-  UserMeta userMeta;
-  if (!(*resJson)["login"].isString()) {
-    // Error
-    LOG_ERROR << "The login is invalid";
-    return std::nullopt;
-  }
-  userMeta.userName = (*resJson)["login"].asString();
-
-  if (!(*resJson)["avatar_url"].isString()) {
-    // Error
-    LOG_ERROR << "The avatar_url is invalid";
-    return std::nullopt;
-  }
-  userMeta.avatarUrl = (*resJson)["avatar_url"].asString();
-
-  if (!(*resJson)["name"].isString()) {
-    // Error
-    LOG_ERROR << "The name is invalid";
-    return std::nullopt;
-  }
-  userMeta.name = (*resJson)["name"].asString();
-  return userMeta;
-}
 
 std::optional<std::string>
 getEmail(const std::string& accessToken) {
