@@ -12,9 +12,10 @@ use get_user_meta::get_user_meta;
 
 use crate::user::models::User;
 use actix_web::error::{ErrorInternalServerError, ErrorUnauthorized};
+use actix_web::http::header;
 use actix_web::{get, web, HttpResponse, Result};
 use diesel::prelude::*;
-use poac_api_utils::{DbError, DbPool, Response};
+use poac_api_utils::{DbError, DbPool};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -68,8 +69,14 @@ async fn auth_callback(
         }
     };
 
-    // TODO: Convert user to base64
-    Ok(Response::ok(user))
+    let base64_user = base64::encode(serde_json::to_string(&user)?.as_bytes());
+    let redirect_uri = format!(
+        "https://poac.pm/api/auth?access_token={}&user_metadata={}",
+        access_token, base64_user
+    );
+    Ok(HttpResponse::TemporaryRedirect()
+        .append_header((header::LOCATION, redirect_uri))
+        .finish())
 }
 
 pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
