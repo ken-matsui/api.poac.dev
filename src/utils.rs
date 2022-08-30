@@ -19,4 +19,23 @@ impl<T: Serialize> Response<T> {
     pub(crate) fn ok(data: T) -> HttpResponse {
         HttpResponse::Ok().json(Self::new(data))
     }
+
+    pub(crate) fn maybe_ok(data: Option<T>, msg: String) -> HttpResponse {
+        if let Some(data) = data {
+            Self::ok(data)
+        } else {
+            HttpResponse::NotFound().json(ErrResponse::new(msg))
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct ErrResponse<T> {
+    error: T,
+}
+
+impl<T: Serialize> ErrResponse<T> {
+    fn new(error: T) -> Self {
+        Self { error }
+    }
 }

@@ -62,15 +62,14 @@ async fn repo_info(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Re
     .await?
     .map_err(ErrorInternalServerError)?;
 
-    if let Some(packages) = packages {
-        Ok(Response::ok(packages))
-    } else {
-        let body_ = body.into_inner();
-        Ok(HttpResponse::NotFound().body(format!(
+    let body_ = body.into_inner();
+    Ok(Response::maybe_ok(
+        packages,
+        format!(
             "No package found where name = `{}` & version = `{}`",
             body_.name, body_.version
-        )))
-    }
+        ),
+    ))
 }
 
 #[derive(Deserialize)]
@@ -104,15 +103,14 @@ async fn deps(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Result<
     .await?
     .map_err(ErrorInternalServerError)?;
 
-    if let Some(packages) = packages {
-        Ok(Response::ok(packages))
-    } else {
-        let body_ = body.into_inner();
-        Ok(HttpResponse::NotFound().body(format!(
+    let body_ = body.into_inner();
+    Ok(Response::maybe_ok(
+        packages,
+        format!(
             "No package found where name = `{}` & version = `{}`",
             body_.name, body_.version
-        )))
-    }
+        ),
+    ))
 }
 
 pub(crate) fn init_routes(cfg: &mut web::ServiceConfig) {
