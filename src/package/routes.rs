@@ -1,4 +1,4 @@
-use crate::package::Package;
+use crate::package::actions;
 use crate::utils::DbPool;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{get, post, web, HttpResponse, Result};
@@ -16,7 +16,7 @@ async fn get_all(
 ) -> Result<HttpResponse> {
     let packages = web::block(move || {
         let mut conn = pool.get()?;
-        Package::get_all(&mut conn, query.filter)
+        actions::get_all(&mut conn, query.filter)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
@@ -37,7 +37,7 @@ async fn search(
 ) -> Result<HttpResponse> {
     let packages = web::block(move || {
         let mut conn = pool.get()?;
-        Package::search(&mut conn, &body.query, body.per_page)
+        actions::search(&mut conn, &body.query, body.per_page)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
@@ -57,7 +57,7 @@ async fn repo_info(pool: web::Data<DbPool>, body: web::Json<RepoInfoBody>) -> Re
 
     let packages = web::block(move || {
         let mut conn = pool.get()?;
-        Package::repo_info(&mut conn, &body_.name, &body_.version)
+        actions::repo_info(&mut conn, &body_.name, &body_.version)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
