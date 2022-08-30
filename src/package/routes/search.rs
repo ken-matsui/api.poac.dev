@@ -10,7 +10,7 @@ struct SearchBody {
     per_page: Option<i64>,
 }
 
-#[post("/v1/packages/search")]
+#[post("/packages/search")]
 async fn search(
     pool: web::Data<DbPool>,
     web::Json(body): web::Json<SearchBody>,

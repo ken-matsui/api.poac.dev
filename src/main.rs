@@ -31,8 +31,11 @@ async fn main() -> std::io::Result<()> {
             // Set up DB pool to be used with web::Data<Pool> extractor
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
-            .configure(package::init_routes)
-            .configure(user::init_routes)
+            .service(
+                web::scope("/v1")
+                    .configure(package::init_routes)
+                    .configure(user::init_routes),
+            )
     })
     .bind(("127.0.0.1", port))?
     .run()

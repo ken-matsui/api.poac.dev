@@ -14,7 +14,7 @@ async fn versions_impl(pool: web::Data<DbPool>, name: String) -> Result<HttpResp
     Ok(Response::ok(packages))
 }
 
-#[get("/v1/packages/{org}/{name}/versions")]
+#[get("/packages/{org}/{name}/versions")]
 async fn versions(
     pool: web::Data<DbPool>,
     param: web::Path<(String, String)>,
@@ -23,7 +23,7 @@ async fn versions(
     versions_impl(pool, concat_org_name(org, name)).await
 }
 
-#[get("/v1/packages/{name}/versions")]
+#[get("/packages/{name}/versions")]
 async fn versions_official(
     pool: web::Data<DbPool>,
     name: web::Path<String>,

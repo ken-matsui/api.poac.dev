@@ -23,7 +23,7 @@ async fn deps_impl(pool: web::Data<DbPool>, name: String, version: String) -> Re
     ))
 }
 
-#[get("/v1/packages/{org}/{name}/{version}/deps")]
+#[get("/packages/{org}/{name}/{version}/deps")]
 async fn deps(
     pool: web::Data<DbPool>,
     param: web::Path<(String, String, String)>,
@@ -32,7 +32,7 @@ async fn deps(
     deps_impl(pool, concat_org_name(org, name), version).await
 }
 
-#[get("/v1/packages/{name}/{version}/deps")]
+#[get("/packages/{name}/{version}/deps")]
 async fn deps_official(
     pool: web::Data<DbPool>,
     param: web::Path<(String, String)>,

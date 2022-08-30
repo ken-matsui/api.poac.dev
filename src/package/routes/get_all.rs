@@ -9,7 +9,7 @@ pub(crate) struct QueryParam {
     filter: Option<String>,
 }
 
-#[get("/v1/packages")]
+#[get("/packages")]
 async fn get_all(
     pool: web::Data<DbPool>,
     web::Query(query): web::Query<QueryParam>,

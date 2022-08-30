@@ -27,7 +27,7 @@ async fn repo_info_impl(
     ))
 }
 
-#[get("/v1/packages/{org}/{name}/{version}/repoinfo")]
+#[get("/packages/{org}/{name}/{version}/repoinfo")]
 async fn repo_info(
     pool: web::Data<DbPool>,
     param: web::Path<(String, String, String)>,
@@ -36,7 +36,7 @@ async fn repo_info(
     repo_info_impl(pool, concat_org_name(org, name), version).await
 }
 
-#[get("/v1/packages/{name}/{version}/repoinfo")]
+#[get("/packages/{name}/{version}/repoinfo")]
 async fn repo_info_official(
     pool: web::Data<DbPool>,
     param: web::Path<(String, String)>,

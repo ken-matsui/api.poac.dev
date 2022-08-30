@@ -16,7 +16,7 @@ async fn dependents_impl(pool: web::Data<DbPool>, name: String) -> Result<HttpRe
     Ok(Response::ok(packages))
 }
 
-#[get("/v1/packages/{org}/{name}/dependents")]
+#[get("/packages/{org}/{name}/dependents")]
 async fn dependents(
     pool: web::Data<DbPool>,
     param: web::Path<(String, String)>,
@@ -25,7 +25,7 @@ async fn dependents(
     dependents_impl(pool, concat_org_name(org, name)).await
 }
 
-#[get("/v1/packages/{name}/dependents")]
+#[get("/packages/{name}/dependents")]
 async fn dependents_official(
     pool: web::Data<DbPool>,
     name: web::Path<String>,
