@@ -1,6 +1,15 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    ownerships (id) {
+        id -> Uuid,
+        package_name -> Text,
+        user_id -> Uuid,
+        is_pending -> Bool,
+    }
+}
+
+diesel::table! {
     packages (id) {
         id -> Uuid,
         published_at -> Timestamptz,
@@ -28,4 +37,6 @@ diesel::table! {
     }
 }
 
-diesel::allow_tables_to_appear_in_same_query!(packages, users);
+diesel::joinable!(ownerships -> users (user_id));
+
+diesel::allow_tables_to_appear_in_same_query!(ownerships, packages, users);
