@@ -32,6 +32,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
             .configure(package::init_routes)
+            .configure(user::init_routes)
     })
     .bind(("127.0.0.1", port))?
     .run()

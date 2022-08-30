@@ -1,4 +1,4 @@
-use crate::package::Package;
+use crate::package::models::Package;
 use diesel::dsl::sql;
 use diesel::prelude::*;
 use diesel::sql_types::Text;
