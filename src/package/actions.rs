@@ -1,8 +1,6 @@
 use crate::package::Package;
-use crate::utils::DbError;
-use diesel::debug_query;
+use crate::utils::{log_query, DbError};
 use diesel::dsl::sql;
-use diesel::pg::Pg;
 use diesel::prelude::*;
 use diesel::sql_types::Text;
 use diesel::PgConnection;
@@ -18,7 +16,7 @@ pub(crate) fn get_all(
         // Get packages with the latest version
         let query = packages.distinct_on(name).order(name);
         // TODO: .order(sql::<Text>("string_to_array(version, '.')::int[]"))
-        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+        log_query(&query);
 
         let results = query.load::<Package>(conn)?;
         Ok(results)
@@ -27,7 +25,7 @@ pub(crate) fn get_all(
         let query = packages
             .order(name)
             .order(sql::<Text>("string_to_array(version, '.')::int[]"));
-        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+        log_query(&query);
 
         let results = query.load::<Package>(conn)?;
         Ok(results)
@@ -45,12 +43,12 @@ pub(crate) fn search(
 
     if let Some(per_page) = per_page {
         let query = query.limit(per_page);
-        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+        log_query(&query);
 
         let results = query.load::<Package>(conn)?;
         Ok(results)
     } else {
-        log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+        log_query(&query);
 
         let results = query.load::<Package>(conn)?;
         Ok(results)
@@ -74,7 +72,7 @@ pub(crate) fn repo_info(
         .select((repository, sha256sum))
         .filter(name.eq(name_))
         .filter(version.eq(version_));
-    log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+    log_query(&query);
 
     let result = query
         .first::<(String, String)>(conn)
@@ -90,7 +88,7 @@ pub(crate) fn versions(conn: &mut PgConnection, name_: &str) -> Result<Vec<Strin
     use crate::schema::packages::dsl::*;
 
     let query = packages.select(version).filter(name.eq(name_));
-    log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+    log_query(&query);
 
     let results = query.load::<String>(conn)?;
     Ok(results)
@@ -107,8 +105,18 @@ pub(crate) fn deps(
         .select(metadata.retrieve_as_object("dependencies"))
         .filter(name.eq(name_))
         .filter(version.eq(version_));
-    log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+    log_query(&query);
 
     let result = query.first::<serde_json::Value>(conn).optional()?;
+    Ok(result)
+}
+
+pub(crate) fn dependents(conn: &mut PgConnection, name_: &str) -> Result<Vec<Package>, DbError> {
+    use crate::schema::packages::dsl::*;
+
+    let query = packages.filter(metadata.retrieve_as_object("dependencies").has_key(name_));
+    log_query(&query);
+
+    let result = query.load::<Package>(conn)?;
     Ok(result)
 }

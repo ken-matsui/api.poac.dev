@@ -1,3 +1,4 @@
+mod dependents;
 mod deps;
 mod get_all;
 mod repo_info;
@@ -12,4 +13,5 @@ pub(crate) fn init_routes(cfg: &mut ServiceConfig) {
     cfg.configure(repo_info::init_routes);
     cfg.configure(versions::init_routes);
     cfg.configure(deps::init_routes);
+    cfg.configure(dependents::init_routes);
 }

@@ -44,3 +44,13 @@ impl<T: Serialize> ErrResponse<T> {
 pub(crate) fn concat_org_name(org: String, name: String) -> String {
     format!("{}/{}", org, name)
 }
+
+use diesel::pg::Pg;
+use diesel::query_builder::QueryFragment;
+
+#[inline]
+pub(crate) fn log_query<T: QueryFragment<Pg>>(query: &T) {
+    use diesel::debug_query;
+
+    log::debug!("{}", debug_query::<Pg, _>(&query).to_string());
+}
