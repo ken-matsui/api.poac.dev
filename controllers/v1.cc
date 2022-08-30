@@ -5,38 +5,6 @@ struct UserMeta {
   std::string email;
 };
 
-std::optional<std::string>
-getEmail(const std::string& accessToken) {
-  const auto client = HttpClient::newHttpClient("https://api.github.com");
-  auto req = HttpRequest::newHttpRequest();
-  req->setMethod(drogon::Get);
-  req->setPath("/user/emails");
-  req->addHeader("Authorization", "token " + accessToken);
-
-  const auto [result, response] = client->sendRequest(req);
-  if (result != ReqResult::Ok) {
-    // Error
-    LOG_ERROR << result;
-    return std::nullopt;
-  }
-
-  const auto resJson = response->getJsonObject();
-  if (!resJson) {
-    // Error
-    LOG_ERROR << "The response is invalid";
-    return std::nullopt;
-  }
-
-  for (const auto& j : (*resJson)) {
-    if (j["primary"].isBool() && j["primary"].asBool()) {
-      return j["email"].asString();
-    }
-  }
-  LOG_ERROR << "What the heck user would have no primary email?: "
-            << (*resJson).toStyledString();
-  return std::nullopt;
-}
-
 std::optional<User>
 createNewUser(const UserMeta& userMeta) {
   // Create a new user
@@ -115,21 +83,21 @@ v1::authCallback(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback
 ) {
-  std::string accessToken;
-  if (const auto at = getAccessToken(req->getParameter("code"))) {
-    accessToken = at.value();
-  } else {
-    callback(HttpResponse::newRedirectionResponse("https://poac.pm"));
-    return;
-  }
-
-  UserMeta userMeta;
-  if (const auto um = getUserMeta(accessToken)) {
-    userMeta = um.value();
-  } else {
-    callback(HttpResponse::newRedirectionResponse("https://poac.pm"));
-    return;
-  }
+//  std::string accessToken;
+//  if (const auto at = getAccessToken(req->getParameter("code"))) {
+//    accessToken = at.value();
+//  } else {
+//    callback(HttpResponse::newRedirectionResponse("https://poac.pm"));
+//    return;
+//  }
+//
+//  UserMeta userMeta;
+//  if (const auto um = getUserMeta(accessToken)) {
+//    userMeta = um.value();
+//  } else {
+//    callback(HttpResponse::newRedirectionResponse("https://poac.pm"));
+//    return;
+//  }
 
   Json::Value user;
   if (const auto u = findUser(accessToken, userMeta)) {
