@@ -1,7 +1,7 @@
 use crate::package::models::Package;
 use diesel::dsl::sql;
 use diesel::prelude::*;
-use diesel::sql_types::Text;
+use diesel::sql_types::{Array, Integer, Text};
 use diesel::PgConnection;
 use poac_api_utils::{log_query, DbError};
 use serde::Serialize;
@@ -17,7 +17,7 @@ pub(crate) fn get_all(
         let query = packages.distinct_on(name).order(name);
         // Maybe related to: https://github.com/diesel-rs/diesel/issues/3020
         // Compile error when uncommenting this:
-        // TODO: .order(sql::<Text>("string_to_array(version, '.')::int[]"));
+        // TODO: .order(sql::<Array<Integer>>("string_to_array(version, '.')::int[]"));
         log_query(&query);
 
         let results = query.load::<Package>(conn)?;
@@ -133,13 +133,13 @@ pub(crate) fn owned_packages(
     use crate::schema::users::dsl::{id as users_id, user_name, users};
 
     let query = packages
-        .distinct_on(name)
+        // .distinct_on(name)
         .select(all_columns)
         .left_join(ownerships.on(package_name.eq(name)))
         .left_join(users.on(users_id.eq(user_id)))
         .filter(user_name.eq(user_name_))
-        .order(name);
-    // TODO: .order(sql::<Text>("string_to_array(version, '.')::int[]"));
+        .order(name)
+        .order(sql::<Array<Integer>>("string_to_array(version, '.')::int[]").desc());
     log_query(&query);
 
     let result = query.load::<Package>(conn)?;
