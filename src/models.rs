@@ -1,3 +1,4 @@
+use crate::utils::DbError;
 use chrono::NaiveDateTime;
 use diesel::debug_query;
 use diesel::dsl::sql;
@@ -6,8 +7,6 @@ use diesel::prelude::*;
 use diesel::sql_types::Text;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-type DbError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Queryable, Serialize, Deserialize)]
 pub(crate) struct Package {
