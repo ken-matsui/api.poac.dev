@@ -5,16 +5,13 @@ use poac_api_utils::{DbPool, Response};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-struct SearchBody {
+struct Body {
     query: String,
     per_page: Option<i64>,
 }
 
 #[post("/packages/search")]
-async fn search(
-    pool: web::Data<DbPool>,
-    web::Json(body): web::Json<SearchBody>,
-) -> Result<HttpResponse> {
+async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Body>) -> Result<HttpResponse> {
     let packages = web::block(move || {
         let mut conn = pool.get()?;
         actions::search(&mut conn, &body.query, body.per_page)
