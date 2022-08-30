@@ -1,53 +1,13 @@
 mod models;
+mod package;
 mod schema;
+mod utils;
 
-use crate::models::Package;
-use actix_web::error::ErrorInternalServerError;
-use actix_web::{get, middleware::Logger, post, web, App, HttpResponse, HttpServer, Result};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use dotenvy::dotenv;
-use serde::Deserialize;
 use std::env;
-
-type DbPool = Pool<ConnectionManager<PgConnection>>;
-
-#[derive(Deserialize)]
-struct QueryParam {
-    filter: Option<String>,
-}
-
-#[get("/v1/packages")]
-async fn packages(
-    pool: web::Data<DbPool>,
-    web::Query(query): web::Query<QueryParam>,
-) -> Result<HttpResponse> {
-    let other_packages = web::block(move || {
-        let mut conn = pool.get()?;
-        Package::find_all(&mut conn, query.filter)
-    })
-    .await?
-    .map_err(ErrorInternalServerError)?;
-
-    Ok(HttpResponse::Ok().json(other_packages))
-}
-
-#[derive(Deserialize)]
-struct Info {
-    query: String,
-}
-
-#[post("/v1/search")]
-async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Info>) -> Result<HttpResponse> {
-    let other_packages = web::block(move || {
-        let mut conn = pool.get()?;
-        Package::find(&mut conn, &body.query)
-    })
-    .await?
-    .map_err(ErrorInternalServerError)?;
-
-    Ok(HttpResponse::Ok().json(other_packages))
-}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -72,8 +32,7 @@ async fn main() -> std::io::Result<()> {
             // Set up DB pool to be used with web::Data<Pool> extractor
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
-            .service(packages)
-            .service(search)
+            .configure(package::init_routes)
     })
     .bind(("127.0.0.1", port))?
     .run()
