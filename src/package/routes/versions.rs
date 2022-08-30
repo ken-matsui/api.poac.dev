@@ -17,9 +17,9 @@ async fn versions_impl(pool: web::Data<DbPool>, name: String) -> Result<HttpResp
 #[get("/v1/packages/{org}/{name}/versions")]
 async fn versions(
     pool: web::Data<DbPool>,
-    full_name: web::Path<(String, String)>,
+    param: web::Path<(String, String)>,
 ) -> Result<HttpResponse> {
-    let (org, name) = full_name.into_inner();
+    let (org, name) = param.into_inner();
     versions_impl(pool, format!("{}/{}", org, name)).await
 }
 
