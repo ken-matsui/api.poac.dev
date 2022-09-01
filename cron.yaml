@@ -1,4 +1,0 @@
-cron: # deps, versions
-- description: "Daily Cloud Firestore Export"
-  url: /firestore-export
-  schedule: every 24 hours
