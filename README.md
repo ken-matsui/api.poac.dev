@@ -28,4 +28,9 @@ api/$ supabase functions deploy search --project-ref <ref>
 
 ```bash
 $ deno fmt
+=======
+# api.poac.pm
+
+```shell
+$ RUST_LOG=debug cargo run
 ```
