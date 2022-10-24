@@ -37,5 +37,5 @@ pub(crate) async fn get_email(access_token: &str) -> Result<String> {
     }
 
     log::error!("What the heck user have no primary email?: {:?}", emails);
-    Err(ErrorNotFound(format!("Email not found")))
+    Err(ErrorNotFound("Email not found"))
 }
