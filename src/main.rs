@@ -4,7 +4,7 @@ mod routes;
 mod schema;
 mod user;
 
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Result};
+use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
 use diesel::dsl::sql;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::sql_types::Bool;
@@ -13,25 +13,26 @@ use dotenvy::dotenv;
 use poac_api_utils::DbPool;
 use std::env;
 
-async fn get_health_status(pool: web::Data<DbPool>) -> Result<HttpResponse> {
-    let is_database_connected: bool = web::block(move || {
+async fn get_health_status(pool: web::Data<DbPool>) -> HttpResponse {
+    let is_database_connected = web::block(move || {
         if let Ok(mut conn) = pool.get() {
             sql::<Bool>("SELECT 1").execute(&mut conn).is_ok()
         } else {
             false
         }
     })
-    .await?;
+    .await
+    .unwrap_or(false);
 
-    let body = serde_json::json!({ "database_connected": is_database_connected }).to_string();
+    let db_status = serde_json::json!({ "database_connected": is_database_connected }).to_string();
     if is_database_connected {
-        Ok(HttpResponse::Ok()
+        HttpResponse::Ok()
             .content_type("application/json")
-            .body(body))
+            .body(db_status)
     } else {
-        Ok(HttpResponse::ServiceUnavailable()
+        HttpResponse::ServiceUnavailable()
             .content_type("application/json")
-            .body(body))
+            .body(db_status)
     }
 }
 
