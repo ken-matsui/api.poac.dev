@@ -1,9 +1,7 @@
-create extension if not exists "uuid-ossp";
-
 create table public.packages (
     id uuid primary key default uuid_generate_v4(),
     published_at timestamptz not null default now(),
-    metadata jsonb not null unique,
+    metadata jsonb not null, -- unique
     name text not null,
     version text not null,
     edition int2 not null,

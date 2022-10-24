@@ -1,6 +1,13 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    officials (official_name) {
+        official_name -> Text,
+        full_name -> Text,
+    }
+}
+
+diesel::table! {
     ownerships (id) {
         id -> Uuid,
         package_name -> Text,
@@ -39,4 +46,4 @@ diesel::table! {
 
 diesel::joinable!(ownerships -> users (user_id));
 
-diesel::allow_tables_to_appear_in_same_query!(ownerships, packages, users);
+diesel::allow_tables_to_appear_in_same_query!(officials, ownerships, packages, users,);
