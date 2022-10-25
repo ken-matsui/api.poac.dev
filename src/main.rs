@@ -33,7 +33,8 @@ async fn main() -> std::io::Result<()> {
         App::new()
             // Set up DB pool to be used with web::Data<Pool> extractor
             .app_data(web::Data::new(pool.clone()))
-            .route("/health", web::get().to(health::status))
+            .route("/health", web::get().to(health::api))
+            .route("/health_db", web::get().to(health::db))
             .wrap(Logger::default())
             .configure(routes::init_routes)
     })

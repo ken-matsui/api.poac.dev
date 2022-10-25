@@ -4,7 +4,7 @@ use diesel::sql_types::Bool;
 use diesel::RunQueryDsl;
 use poac_api_utils::DbPool;
 
-pub(crate) async fn status(pool: web::Data<DbPool>) -> HttpResponse {
+pub(crate) async fn db(pool: web::Data<DbPool>) -> HttpResponse {
     let is_database_connected = web::block(move || {
         if let Ok(mut conn) = pool.get() {
             sql::<Bool>("SELECT 1").execute(&mut conn).is_ok()
@@ -25,4 +25,10 @@ pub(crate) async fn status(pool: web::Data<DbPool>) -> HttpResponse {
             .content_type("application/json")
             .body(db_status)
     }
+}
+
+pub(crate) async fn api(pool: web::Data<DbPool>) -> HttpResponse {
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body("ok")
 }
