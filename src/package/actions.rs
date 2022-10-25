@@ -14,19 +14,16 @@ pub(crate) fn get_all(
 
     if filter == Some("unique".to_string()) {
         // Get packages with the latest version
-        let query = packages.distinct_on(name).order(name);
-        // Maybe related to: https://github.com/diesel-rs/diesel/issues/3020
-        // Compile error when uncommenting this:
-        // TODO: .order(sql::<Array<Integer>>("string_to_array(version, '.')::int[]"));
+        let query = packages
+            .order((name, sql::<Text>("string_to_array(version, '.')::int[]")))
+            .distinct_on(name);
         log_query(&query);
 
         let results = query.load::<Package>(conn)?;
         Ok(results)
     } else {
         // Get packages ordered by version (newer first)
-        let query = packages
-            .order(name)
-            .order(sql::<Text>("string_to_array(version, '.')::int[]"));
+        let query = packages.order((name, sql::<Text>("string_to_array(version, '.')::int[]")));
         log_query(&query);
 
         let results = query.load::<Package>(conn)?;
@@ -38,23 +35,26 @@ pub(crate) fn search(
     conn: &mut PgConnection,
     query: &str,
     per_page: Option<i64>,
+    sort: Option<String>, // newly_published, relevance
 ) -> Result<Vec<Package>, DbError> {
     use crate::schema::packages::dsl::*;
 
-    let query = packages.filter(name.like(format!("%{}%", query)));
+    let mut query = packages
+        .order((name, sql::<Text>("string_to_array(version, '.')::int[]")))
+        .distinct_on(name)
+        .filter(name.like(format!("%{}%", query)))
+        .into_boxed();
 
-    if let Some(per_page) = per_page {
-        let query = query.limit(per_page);
-        log_query(&query);
-
-        let results = query.load::<Package>(conn)?;
-        Ok(results)
-    } else {
-        log_query(&query);
-
-        let results = query.load::<Package>(conn)?;
-        Ok(results)
+    if Some("newly_published".to_string()) == sort {
+        query = query.order(published_at.desc());
     }
+    if let Some(per_page) = per_page {
+        query = query.limit(per_page);
+    }
+
+    log_query(&query);
+    let results = query.load::<Package>(conn)?;
+    Ok(results)
 }
 
 #[derive(Serialize)]
@@ -133,13 +133,15 @@ pub(crate) fn owned_packages(
     use crate::schema::users::dsl::{id as users_id, user_name, users};
 
     let query = packages
-        // .distinct_on(name)
+        .distinct_on(name)
         .select(all_columns)
         .left_join(ownerships.on(package_name.eq(name)))
         .left_join(users.on(users_id.eq(user_id)))
         .filter(user_name.eq(user_name_))
-        .order(name)
-        .order(sql::<Array<Integer>>("string_to_array(version, '.')::int[]").desc());
+        .order((
+            name,
+            sql::<Array<Integer>>("string_to_array(version, '.')::int[]").desc(),
+        ));
     log_query(&query);
 
     let result = query.load::<Package>(conn)?;

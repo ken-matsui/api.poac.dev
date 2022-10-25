@@ -8,13 +8,14 @@ use serde::Deserialize;
 struct Body {
     query: String,
     per_page: Option<i64>,
+    sort: Option<String>,
 }
 
 #[post("/packages/search")]
 async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Body>) -> Result<HttpResponse> {
     let packages = web::block(move || {
         let mut conn = pool.get()?;
-        actions::search(&mut conn, &body.query, body.per_page)
+        actions::search(&mut conn, &body.query, body.per_page, body.sort)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
