@@ -3,7 +3,7 @@
 diesel::table! {
     officials (official_name) {
         official_name -> Text,
-        full_name -> Text,
+        original_name -> Text,
     }
 }
 
