@@ -11,8 +11,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3.0.0
 
-      - name: Create a temporary SSL client certificate
-        run: touch $HOME/root.crt
-
       - name: Build Dockerfile
-        run: DOCKER_BUILDKIT=1 docker build --secret id=root.crt,src=$HOME/root.crt .
+        run: docker build --build-arg ROOT_CRT='' .

@@ -19,5 +19,5 @@ diesel migration run
 ## Build Dockerfile
 
 ```shell
-DOCKER_BUILDKIT=1 docker build --secret id=root.crt,src=$HOME/.postgresql/root.crt .
+docker build --build-arg ROOT_CRT='' .
 ```
