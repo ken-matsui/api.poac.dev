@@ -27,7 +27,7 @@ pub(crate) async fn db(pool: web::Data<DbPool>) -> HttpResponse {
     }
 }
 
-pub(crate) async fn api(pool: web::Data<DbPool>) -> HttpResponse {
+pub(crate) async fn api() -> HttpResponse {
     HttpResponse::Ok()
         .content_type("application/json")
         .body("ok")
