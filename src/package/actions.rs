@@ -1,4 +1,5 @@
-use crate::package::models::Package;
+use crate::package::models::{Package, PackageOverview, PackageSearchResult};
+use crate::schema::packages;
 use diesel::dsl::sql;
 use diesel::prelude::*;
 use diesel::sql_types::{Array, Integer, Text};
@@ -10,20 +11,24 @@ pub(crate) fn get_all(
     conn: &mut PgConnection,
     filter: Option<String>,
 ) -> Result<Vec<Package>, DbError> {
-    use crate::schema::packages::dsl::*;
-
     if filter == Some("unique".to_string()) {
         // Get packages with the latest version
-        let query = packages
-            .order((name, sql::<Text>("string_to_array(version, '.')::int[]")))
-            .distinct_on(name);
+        let query = packages::table
+            .order((
+                packages::name,
+                sql::<Text>("string_to_array(version, '.')::int[]"),
+            ))
+            .distinct_on(packages::name);
         log_query(&query);
 
         let results = query.load::<Package>(conn)?;
         Ok(results)
     } else {
         // Get packages ordered by version (newer first)
-        let query = packages.order((name, sql::<Text>("string_to_array(version, '.')::int[]")));
+        let query = packages::table.order((
+            packages::name,
+            sql::<Text>("string_to_array(version, '.')::int[]"),
+        ));
         log_query(&query);
 
         let results = query.load::<Package>(conn)?;
@@ -33,27 +38,56 @@ pub(crate) fn get_all(
 
 pub(crate) fn search(
     conn: &mut PgConnection,
-    query: &str,
+    text: &str,
     per_page: Option<i64>,
     sort: Option<String>, // newly_published, relevance
-) -> Result<Vec<Package>, DbError> {
-    use crate::schema::packages::dsl::*;
-
-    let mut query = packages
-        .order((name, sql::<Text>("string_to_array(version, '.')::int[]")))
-        .distinct_on(name)
-        .filter(name.like(format!("%{}%", query)))
+) -> Result<PackageSearchResult, DbError> {
+    let mut query = packages::table
+        .select((
+            packages::id,
+            packages::published_at,
+            packages::name,
+            packages::version,
+            packages::edition,
+            packages::description,
+            sql::<diesel::sql_types::BigInt>("count(id) over()"),
+        ))
+        .order((
+            packages::name,
+            sql::<Text>("string_to_array(version, '.')::int[]"),
+        ))
+        .distinct_on(packages::name)
+        .filter(packages::name.like(format!("%{}%", text)))
+        .group_by(packages::id)
         .into_boxed();
 
     if Some("newly_published".to_string()) == sort {
-        query = query.order(published_at.desc());
+        query = query.order(packages::published_at.desc());
     }
     if let Some(per_page) = per_page {
         query = query.limit(per_page);
     }
-
     log_query(&query);
-    let results = query.load::<Package>(conn)?;
+
+    let results = query.load(conn)?;
+    if results.is_empty() {
+        return Ok(PackageSearchResult::empty());
+    }
+    let (_, _, _, _, _, _, cnt) = results[0];
+
+    let mut packages = Vec::<PackageOverview>::new();
+    for (id, published_at, name, version, edition, description, _) in results {
+        packages.push(PackageOverview::new(
+            id,
+            published_at,
+            name,
+            version,
+            edition,
+            description,
+        ));
+    }
+
+    let results = PackageSearchResult::new(cnt, packages);
     Ok(results)
 }
 
@@ -68,12 +102,10 @@ pub(crate) fn repo_info(
     name_: &str,
     version_: &str,
 ) -> Result<Option<RepoInfo>, DbError> {
-    use crate::schema::packages::dsl::*;
-
-    let query = packages
-        .select((repository, sha256sum))
-        .filter(name.eq(name_))
-        .filter(version.eq(version_));
+    let query = packages::table
+        .select((packages::repository, packages::sha256sum))
+        .filter(packages::name.eq(name_))
+        .filter(packages::version.eq(version_));
     log_query(&query);
 
     let result = query
@@ -87,9 +119,9 @@ pub(crate) fn repo_info(
 }
 
 pub(crate) fn versions(conn: &mut PgConnection, name_: &str) -> Result<Vec<String>, DbError> {
-    use crate::schema::packages::dsl::*;
-
-    let query = packages.select(version).filter(name.eq(name_));
+    let query = packages::table
+        .select(packages::version)
+        .filter(packages::name.eq(name_));
     log_query(&query);
 
     let results = query.load::<String>(conn)?;
@@ -101,12 +133,10 @@ pub(crate) fn deps(
     name_: &str,
     version_: &str,
 ) -> Result<Option<serde_json::Value>, DbError> {
-    use crate::schema::packages::dsl::*;
-
-    let query = packages
-        .select(metadata.retrieve_as_object("dependencies"))
-        .filter(name.eq(name_))
-        .filter(version.eq(version_));
+    let query = packages::table
+        .select(packages::metadata.retrieve_as_object("dependencies"))
+        .filter(packages::name.eq(name_))
+        .filter(packages::version.eq(version_));
     log_query(&query);
 
     let result = query.first::<serde_json::Value>(conn).optional()?;
@@ -114,9 +144,11 @@ pub(crate) fn deps(
 }
 
 pub(crate) fn dependents(conn: &mut PgConnection, name_: &str) -> Result<Vec<Package>, DbError> {
-    use crate::schema::packages::dsl::*;
-
-    let query = packages.filter(metadata.retrieve_as_object("dependencies").has_key(name_));
+    let query = packages::table.filter(
+        packages::metadata
+            .retrieve_as_object("dependencies")
+            .has_key(name_),
+    );
     log_query(&query);
 
     let result = query.load::<Package>(conn)?;
@@ -127,19 +159,16 @@ pub(crate) fn owned_packages(
     conn: &mut PgConnection,
     user_name_: &str,
 ) -> Result<Vec<Package>, DbError> {
-    use crate::schema::ownerships::dsl::{ownerships, package_name, user_id};
-    use crate::schema::packages::all_columns;
-    use crate::schema::packages::dsl::*;
-    use crate::schema::users::dsl::{id as users_id, user_name, users};
+    use crate::schema::{ownerships, users};
 
-    let query = packages
-        .distinct_on(name)
-        .select(all_columns)
-        .left_join(ownerships.on(package_name.eq(name)))
-        .left_join(users.on(users_id.eq(user_id)))
-        .filter(user_name.eq(user_name_))
+    let query = packages::table
+        .distinct_on(packages::name)
+        .select(packages::all_columns)
+        .left_join(ownerships::table.on(ownerships::package_name.eq(packages::name)))
+        .left_join(users::table.on(users::id.eq(ownerships::user_id)))
+        .filter(users::user_name.eq(user_name_))
         .order((
-            name,
+            packages::name,
             sql::<Array<Integer>>("string_to_array(version, '.')::int[]").desc(),
         ));
     log_query(&query);
