@@ -15,3 +15,9 @@ diesel migration generate create_posts
 ```shell
 diesel migration run
 ```
+
+## Build Dockerfile
+
+```shell
+DOCKER_BUILDKIT=1 docker build --secret id=root.crt,src=$HOME/.postgresql/root.crt .
+```
