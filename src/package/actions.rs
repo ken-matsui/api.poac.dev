@@ -134,13 +134,25 @@ pub(crate) fn deps(
     version_: &str,
 ) -> Result<Option<serde_json::Value>, DbError> {
     let query = packages::table
-        .select(packages::metadata.retrieve_as_object("dependencies"))
+        .select(
+            packages::metadata
+                .retrieve_as_object("dependencies")
+                .nullable(),
+        )
         .filter(packages::name.eq(name_))
         .filter(packages::version.eq(version_));
     log_query(&query);
 
-    let result = query.first::<serde_json::Value>(conn).optional()?;
-    Ok(result)
+    let result = query.first::<Option<serde_json::Value>>(conn).optional()?;
+    if let Some(result) = result {
+        if let Some(result) = result {
+            Ok(Some(result))
+        } else {
+            Ok(Some(serde_json::json!({})))
+        }
+    } else {
+        Ok(None)
+    }
 }
 
 pub(crate) fn dependents(conn: &mut PgConnection, name_: &str) -> Result<Vec<Package>, DbError> {
