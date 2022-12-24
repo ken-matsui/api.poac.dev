@@ -8,7 +8,7 @@ actix-web = "4"
 awc = { version = "3.0.1", features = ["openssl"] }
 base64 = "0.20.0"
 chrono = { version = "0.4", features = ["serde"] }
-env_logger = "0.9"
+env_logger = "0.10"
 diesel = { version = "2", features = ["postgres", "r2d2", "uuid", "serde_json", "chrono"] }
 dotenvy = "0.15"
 log = "0.4"
