@@ -45,7 +45,7 @@ async fn auth_callback(
 
     let base64_user = base64::encode(serde_json::to_string(&user)?.as_bytes());
     let redirect_uri = format!(
-        "https://poac.pm/api/auth?access_token={}&user_metadata={}",
+        "https://poac.dev/api/auth?access_token={}&user_metadata={}",
         access_token, base64_user
     );
     Ok(HttpResponse::TemporaryRedirect()
