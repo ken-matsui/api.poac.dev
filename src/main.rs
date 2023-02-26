@@ -1,4 +1,5 @@
 mod auth;
+mod constants;
 mod health;
 mod package;
 mod routes;

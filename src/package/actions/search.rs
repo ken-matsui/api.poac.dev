@@ -1,3 +1,4 @@
+use crate::constants::PER_PAGE;
 use crate::package::models::{PackageOverview, PackageSearchResult};
 use crate::schema::packages;
 
@@ -11,9 +12,16 @@ use poac_api_utils::{log_query, DbError};
 pub(crate) fn search(
     conn: &mut PgConnection,
     text: &str,
+    page: Option<i64>,
     per_page: Option<i64>,
     sort: Option<String>, // newly_published, relevance
 ) -> Result<PackageSearchResult, DbError> {
+    let page = page.unwrap_or(1);
+    let per_page = per_page.unwrap_or(PER_PAGE);
+    let sort = sort.unwrap_or("relevance".to_string());
+
+    let start_index = (page - 1) * per_page;
+
     let mut query = packages::table
         .select((
             packages::id,
@@ -31,13 +39,12 @@ pub(crate) fn search(
         .distinct_on(packages::name)
         .filter(packages::name.like(format!("%{}%", text)))
         .group_by(packages::id)
+        .offset(start_index)
+        .limit(per_page)
         .into_boxed();
 
-    if Some("newly_published".to_string()) == sort {
+    if sort == "newly_published" {
         query = query.order(packages::published_at.desc());
-    }
-    if let Some(per_page) = per_page {
-        query = query.limit(per_page);
     }
     log_query(&query);
 
