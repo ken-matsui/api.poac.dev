@@ -1,10 +1,10 @@
-FROM rust:1.63 as builder
+FROM rust:1 as builder
 
 WORKDIR /builder
 COPY . .
 RUN cargo build --release
 
-FROM rust:1.63
+FROM rust:1
 
 ARG ROOT_CRT
 RUN mkdir /root/.postgresql
