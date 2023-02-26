@@ -1,0 +1,3 @@
+# install nightly by `rustup toolchain install nightly`
+[toolchain]
+channel = "nightly"
