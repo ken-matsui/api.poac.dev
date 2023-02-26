@@ -18,31 +18,25 @@ pub(crate) fn search(conn: &mut PgConnection, body: &Body) -> Result<PackageSear
 
     let start_index = (page - 1) * per_page;
 
+    let selection = (
+        packages::id,
+        packages::published_at,
+        packages::name,
+        packages::version,
+        packages::edition,
+        packages::description,
+        sql::<diesel::sql_types::BigInt>("count(id) over()"),
+    );
+
     let mut query = if filter == "unique" {
         packages::table
-            .select((
-                packages::id,
-                packages::published_at,
-                packages::name,
-                packages::version,
-                packages::edition,
-                packages::description,
-                sql::<diesel::sql_types::BigInt>("count(id) over()"),
-            ))
+            .select(selection)
             .distinct_on(packages::name)
             .group_by(packages::id)
             .into_boxed()
     } else {
         packages::table
-            .select((
-                packages::id,
-                packages::published_at,
-                packages::name,
-                packages::version,
-                packages::edition,
-                packages::description,
-                sql::<diesel::sql_types::BigInt>("count(id) over()"),
-            ))
+            .select(selection)
             .group_by(packages::id)
             .into_boxed()
     };
