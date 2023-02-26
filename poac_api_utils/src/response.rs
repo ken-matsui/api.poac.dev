@@ -24,6 +24,9 @@ impl<T: Serialize> Response<T> {
     }
 }
 
+// TODO: return errors in JSON
+// https://actix.rs/docs/errors/
+
 #[derive(Serialize)]
 struct ErrResponse<T> {
     error: T,
