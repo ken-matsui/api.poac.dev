@@ -3,7 +3,7 @@ mod deps;
 mod get_all;
 mod owned_packages;
 mod repo_info;
-mod search;
+pub(crate) mod search;
 mod versions;
 
 use actix_web::web::ServiceConfig;

@@ -5,18 +5,19 @@ use poac_api_utils::{DbPool, Response};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-struct Body {
-    query: String,
-    page: Option<i64>,
-    per_page: Option<i64>,
-    sort: Option<String>,
+pub(crate) struct Body {
+    pub(crate) query: String,
+    pub(crate) page: Option<i64>,
+    pub(crate) per_page: Option<i64>,
+    pub(crate) sort: Option<String>,   // newly_published, relevance
+    pub(crate) filter: Option<String>, // unique, all
 }
 
 #[post("/packages/search")]
 async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Body>) -> Result<HttpResponse> {
     let packages = web::block(move || {
         let mut conn = pool.get()?;
-        actions::search(&mut conn, &body.query, body.page, body.per_page, body.sort)
+        actions::search(&mut conn, &body)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
