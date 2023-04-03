@@ -8,7 +8,7 @@ use diesel::PgConnection;
 
 use poac_api_utils::{log_query, DbError};
 
-pub(crate) fn specific(conn: &mut PgConnection, name_: &str) -> Result<Vec<Package>, DbError> {
+pub(crate) fn details(conn: &mut PgConnection, name_: &str) -> Result<Vec<Package>, DbError> {
     let query = packages::table
         .order((
             packages::name,
