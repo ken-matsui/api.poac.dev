@@ -28,7 +28,7 @@ pub(crate) async fn get_email(access_token: &str) -> Result<String> {
 
     let body = result.body().await.map_err(ErrorInternalServerError)?;
     let emails =
-        serde_json::from_slice::<Vec<UserEmail>>(&*body).map_err(ErrorInternalServerError)?;
+        serde_json::from_slice::<Vec<UserEmail>>(&body).map_err(ErrorInternalServerError)?;
 
     for email in &emails {
         if email.primary {

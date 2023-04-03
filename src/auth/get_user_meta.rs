@@ -29,7 +29,7 @@ pub(crate) async fn get_user_meta(access_token: &str) -> Result<UserMeta> {
     }
 
     let body = result.body().await.map_err(ErrorInternalServerError)?;
-    let user_meta = serde_json::from_slice::<UserMeta>(&*body).map_err(ErrorInternalServerError)?;
+    let user_meta = serde_json::from_slice::<UserMeta>(&body).map_err(ErrorInternalServerError)?;
 
     Ok(user_meta)
 }

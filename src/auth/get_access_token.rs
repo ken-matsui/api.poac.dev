@@ -30,7 +30,7 @@ pub(crate) async fn get_access_token(code: String) -> Result<String> {
 
     let body = result.body().await.map_err(ErrorInternalServerError)?;
     let access_token =
-        serde_json::from_slice::<AccessToken>(&*body).map_err(ErrorInternalServerError)?;
+        serde_json::from_slice::<AccessToken>(&body).map_err(ErrorInternalServerError)?;
 
     Ok(access_token.access_token)
 }

@@ -14,6 +14,7 @@ use update_user::update_user;
 
 use actix_web::http::header;
 use actix_web::{get, web, HttpResponse, Result};
+use base64::{engine::general_purpose, Engine};
 use poac_api_utils::DbPool;
 use serde::Deserialize;
 
@@ -43,10 +44,9 @@ async fn auth_callback(
         }
     };
 
-    let base64_user = base64::encode(serde_json::to_string(&user)?.as_bytes());
+    let base64_user = general_purpose::URL_SAFE.encode(serde_json::to_string(&user)?.as_bytes());
     let redirect_uri = format!(
-        "https://poac.dev/api/auth?access_token={}&user_metadata={}",
-        access_token, base64_user
+        "https://poac.dev/api/auth?access_token={access_token}&user_metadata={base64_user}"
     );
     Ok(HttpResponse::TemporaryRedirect()
         .append_header((header::LOCATION, redirect_uri))
