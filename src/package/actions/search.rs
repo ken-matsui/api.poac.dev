@@ -1,6 +1,6 @@
 use crate::constants::PER_PAGE;
 use crate::package::models::{PackageOverview, PackageSearchResult};
-use crate::package::routes::search::Body;
+use crate::package::routes::search::QueryParam;
 use crate::schema::packages;
 
 use diesel::dsl::sql;
@@ -10,11 +10,14 @@ use diesel::PgConnection;
 
 use poac_api_utils::{log_query, DbError};
 
-pub(crate) fn search(conn: &mut PgConnection, body: &Body) -> Result<PackageSearchResult, DbError> {
-    let page = body.page.unwrap_or(1);
-    let per_page = body.per_page.unwrap_or(PER_PAGE);
-    let sort = body.sort.clone().unwrap_or("relevance".to_string());
-    let filter = body.filter.clone().unwrap_or("unique".to_string());
+pub(crate) fn search(
+    conn: &mut PgConnection,
+    query_param: &QueryParam,
+) -> Result<PackageSearchResult, DbError> {
+    let page = query_param.page.unwrap_or(1);
+    let per_page = query_param.per_page.unwrap_or(PER_PAGE);
+    let sort = query_param.sort.clone().unwrap_or("relevance".to_string());
+    let filter = query_param.filter.clone().unwrap_or("unique".to_string());
 
     let start_index = (page - 1) * per_page;
 
@@ -46,7 +49,7 @@ pub(crate) fn search(conn: &mut PgConnection, body: &Body) -> Result<PackageSear
             packages::name,
             sql::<Text>("string_to_array(version, '.')::int[]"),
         ))
-        .filter(packages::name.like(format!("%{}%", body.query)))
+        .filter(packages::name.like(format!("%{}%", query_param.query)))
         .offset(start_index)
         .limit(per_page);
 

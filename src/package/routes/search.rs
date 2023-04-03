@@ -1,11 +1,11 @@
 use crate::package::actions;
 use actix_web::error::ErrorInternalServerError;
-use actix_web::{post, web, HttpResponse, Result};
+use actix_web::{get, web, HttpResponse, Result};
 use poac_api_utils::{DbPool, Response};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub(crate) struct Body {
+pub(crate) struct QueryParam {
     pub(crate) query: String,
     pub(crate) page: Option<i64>,
     pub(crate) per_page: Option<i64>,
@@ -13,11 +13,14 @@ pub(crate) struct Body {
     pub(crate) filter: Option<String>, // unique, all
 }
 
-#[post("/packages/search")]
-async fn search(pool: web::Data<DbPool>, web::Json(body): web::Json<Body>) -> Result<HttpResponse> {
+#[get("/packages/search")]
+async fn search(
+    pool: web::Data<DbPool>,
+    web::Query(query): web::Query<QueryParam>,
+) -> Result<HttpResponse> {
     let packages = web::block(move || {
         let mut conn = pool.get()?;
-        actions::search(&mut conn, &body)
+        actions::search(&mut conn, &query)
     })
     .await?
     .map_err(ErrorInternalServerError)?;
