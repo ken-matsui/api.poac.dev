@@ -12,7 +12,7 @@ env_logger = "0.10"
 diesel = { version = "2", features = ["postgres", "r2d2", "uuid", "serde_json", "chrono"] }
 dotenvy = "0.15"
 log = "0.4"
-uuid = { version = "1.3.0", features = ["serde", "v4"] }
+uuid = { version = "1.3.2", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 poac_api_utils = { path = "./poac_api_utils" }
