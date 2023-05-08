@@ -24,10 +24,11 @@ async fn main() -> std::io::Result<()> {
         .build(manager)
         .expect("Failed to create pool.");
 
+    let host = env::var("HOST").unwrap_or("127.0.0.1".to_string());
     let port = env::var("PORT")
         .map(|port| port.parse::<u16>().expect("Failed to parse PORT as u16"))
         .unwrap_or(8000);
-    log::info!("starting HTTP server at http://localhost:{}", port);
+    log::info!("starting HTTP server at http://{host}:{port}");
 
     // Start HTTP server
     HttpServer::new(move || {
@@ -39,7 +40,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .configure(routes::init_routes)
     })
-    .bind(("127.0.0.1", port))?
+    .bind((host, port))?
     .run()
     .await
 }

@@ -12,6 +12,7 @@ RUN curl --create-dirs -o $HOME/.postgresql/root.crt 'https://cockroachlabs.clou
 WORKDIR /app
 COPY --from=builder /builder/target/release/poac_api .
 
+ENV HOST "0.0.0.0"
 ENV PORT 8080
 EXPOSE $PORT
 CMD ["/app/poac_api"]
