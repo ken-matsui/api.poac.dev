@@ -470,6 +470,7 @@ FodyWeavers.xsd
 
 *.sql
 !migrations/**/*.sql
+!snippets/**/*.sql
 
 # Added by cargo
 
