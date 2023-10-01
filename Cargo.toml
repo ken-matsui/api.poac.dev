@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4"
-awc = { version = "3.1.1", features = ["openssl"] }
+awc = { version = "3.2.0", features = ["openssl"] }
 base64 = "0.21.4"
 chrono = { version = "0.4", features = ["serde"] }
 env_logger = "0.10"
