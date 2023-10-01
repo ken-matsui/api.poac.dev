@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build
         run: cargo build --verbose
 
@@ -21,14 +21,14 @@ jobs:
   #    runs-on: ubuntu-latest
   #
   #    steps:
-  #      - uses: actions/checkout@v3
+  #      - uses: actions/checkout@v4
   #      - run: cargo fmt --all -- --check
   #
   #  lint:
   #    runs-on: ubuntu-latest
   #
   #    steps:
-  #      - uses: actions/checkout@v3
+  #      - uses: actions/checkout@v4
   #      - uses: actions-rs/clippy-check@v1
   #        with:
   #          token: ${{ secrets.GITHUB_TOKEN }}
@@ -38,6 +38,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run tests
         run: cargo test --all --verbose
