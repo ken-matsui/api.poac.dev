@@ -24,11 +24,12 @@ diesel::table! {
         name -> Text,
         version -> Text,
         edition -> Int2,
-        authors -> Array<Text>,
+        authors -> Array<Nullable<Text>>,
         repository -> Text,
         description -> Text,
         license -> Text,
         readme -> Nullable<Text>,
+        #[max_length = 64]
         sha256sum -> Varchar,
     }
 }
@@ -46,4 +47,9 @@ diesel::table! {
 
 diesel::joinable!(ownerships -> users (user_id));
 
-diesel::allow_tables_to_appear_in_same_query!(officials, ownerships, packages, users,);
+diesel::allow_tables_to_appear_in_same_query!(
+    officials,
+    ownerships,
+    packages,
+    users,
+);
