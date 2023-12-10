@@ -24,7 +24,7 @@ diesel::table! {
         name -> Text,
         version -> Text,
         edition -> Int2,
-        authors -> Array<Nullable<Text>>,
+        authors -> Array<Text>,
         repository -> Text,
         description -> Text,
         license -> Text,
@@ -47,9 +47,4 @@ diesel::table! {
 
 diesel::joinable!(ownerships -> users (user_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    officials,
-    ownerships,
-    packages,
-    users,
-);
+diesel::allow_tables_to_appear_in_same_query!(officials, ownerships, packages, users,);
