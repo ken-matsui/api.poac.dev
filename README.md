@@ -16,10 +16,11 @@ diesel migration generate create_posts
 diesel migration run
 ```
 
-## Build Dockerfile
+## Run the server
 
 ```shell
-docker build --build-arg ROOT_CRT='' .
+cargo install cargo-shuttle
+cargo shuttle run
 ```
 
 ## Useful Links

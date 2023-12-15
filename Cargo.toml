@@ -1,23 +1,26 @@
 [package]
+edition = "2021"
 name = "poac_api"
 version = "0.1.0"
-edition = "2021"
 
 [dependencies]
 actix-web = "4"
-awc = { version = "3.2.0", features = ["openssl"] }
+awc = {version = "3.2.0", features = ["openssl"]}
 base64 = "0.21.5"
-chrono = { version = "0.4", features = ["serde"] }
-env_logger = "0.10"
-diesel = { version = "2", features = ["postgres", "r2d2", "uuid", "serde_json", "chrono"] }
+chrono = {version = "0.4", features = ["serde"]}
+diesel = {version = "2", features = ["postgres", "r2d2", "uuid", "serde_json", "chrono"]}
 dotenvy = "0.15"
+env_logger = "0.10"
 log = "0.4"
-uuid = { version = "1.6.1", features = ["serde", "v4"] }
-serde = { version = "1.0", features = ["derive"] }
+poac_api_utils = {path = "./poac_api_utils"}
+serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
-poac_api_utils = { path = "./poac_api_utils" }
+shuttle-actix-web = "0.35.1"
+shuttle-runtime = "0.35.1"
+shuttle-secrets = "0.35.1"
+uuid = {version = "1.6.1", features = ["serde", "v4"]}
 
 [workspace]
 members = [
-    "poac_api_utils",
+  "poac_api_utils",
 ]
