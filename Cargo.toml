@@ -9,7 +9,6 @@ awc = {version = "3.2.0", features = ["openssl"]}
 base64 = "0.21.5"
 chrono = {version = "0.4", features = ["serde"]}
 diesel = {version = "2", features = ["postgres", "r2d2", "uuid", "serde_json", "chrono"]}
-dotenvy = "0.15"
 env_logger = "0.10"
 log = "0.4"
 poac_api_utils = {path = "./poac_api_utils"}
