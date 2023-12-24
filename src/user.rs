@@ -1,4 +1,3 @@
-mod actions;
 pub(crate) mod models;
 mod routes;
 
