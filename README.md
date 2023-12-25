@@ -1,3 +1,6 @@
+> [!NOTE]
+> This API server has been shut down since there are currently no reliable free hosting services.  The same functionalities are provided in another way.
+
 # api.poac.dev
 
 ```shell
